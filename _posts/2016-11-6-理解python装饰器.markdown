@@ -1,0 +1,812 @@
+---
+layout:     post
+title:      "理解python装饰器"
+subtitle:   ""
+date:       2016-11-6
+author:     "MaggicQ"
+tags:
+    - python
+    - 装饰器
+---
+
+----
+
+本篇文章翻译自  [stackoverflow](http://stackoverflow.com/)
+
+----
+
+
+
+
+
+## 函数是一种对象
+
+为了理解装饰器，你必须理解在pyhton中，函数是一种对象。这有着重要的意义，让我们通过下面这个例子看看原因：
+
+```python
+def shout(word="yes"):
+    return word.capitalize()+"!"
+
+print(shout())
+# outputs : 'Yes!'
+
+# 函数作为一个对象，你可以将其赋给一个变量
+scream = shout
+
+
+# 注意到上面这个语句没有使用括号，因为我们不是调用函数，
+# 而是将函数shout赋给变量scream
+# 这意味着你可以从scream调用shout函数：
+
+print(scream())
+# outputs : 'Yes!'
+
+
+# 除此之外，当你删除掉shout这个名字（看成对象的名字）时，
+# 你仍然可以通过scream访问这个函数（对象）。
+
+del shout
+try:
+    print(shout())
+except NameError, e:
+    print(e)
+    #outputs: "name 'shout' is not defined"
+
+print(scream())
+# outputs: 'Yes!'
+```
+
+记住这个。等等我们还会提到。
+
+有关于python函数的另一个有趣的特性是：函数可以在另一个函数中定义。
+
+```python
+def talk():
+
+    # 你可以在talk函数中定义另外一个函数：
+    def whisper(word="yes"):
+        return word.lower()+"..."
+
+    # 并且马上调用它：
+    print(whisper())
+
+
+# 你可以调用talk函数，每次调用talk时，都会定义whisper函数。
+# whisper函数在talk中被调用：
+talk()
+# outputs:
+# "yes..."
+
+# 但函数whisper在函数体talk外并不存在：
+try:
+    print(whisper())
+except NameError, e:
+    print(e)
+    # outputs : "name 'whisper' is not defined"*
+    # 函数即对象
+```
+
+## 涉及到的函数特性
+
+由上我们知道，函数即对象，因此，函数有以下特性：
+
+* 函数可以被赋值给一个变量
+* 可以在另一个函数中被定义
+
+
+
+这也意味着一个函数也可以返回一个函数。
+
+```python
+def getTalk(kind="shout"):
+
+    # 直接定义两个函数：
+    def shout(word="yes"):
+        return word.capitalize()+"!"
+
+    def whisper(word="yes") :
+        return word.lower()+"...";
+
+    # 然后返回其中的一个
+    if kind == "shout":
+        #不使用括号，注意，我们不是在调用函数，只是返回这个函数对象
+        return shout  
+    else:
+        return whisper
+
+# 你将会如何使用这个神奇的特性？
+
+# 调用函数同时将它赋给一个变量
+talk = getTalk()      
+
+# 你会发现 talk 在这里是一个函数对象
+print(talk)
+#outputs : <function shout at 0xb7ea817c>
+
+# 这个函数（对象）是另一个函数所返回的
+print(talk())
+#outputs : Yes!
+
+# 你也可以直接使用它而不用通过一个中间变量：
+print(getTalk("whisper")())
+#outputs : yes...
+```
+
+以此类推，如果你可以在函数中返回了另一个函数，说明你可以用函数来作为另一个函数的参数：
+
+```python
+def doSomethingBefore(func):
+    print("I do something before then I call the function you gave me")
+    print(func())
+
+doSomethingBefore(scream)
+#outputs:
+#I do something before then I call the function you gave me
+#Yes!
+```
+
+好了，看到这里你已经有了所有理解装饰器所需要的东西，你会发现，装饰器就是“包装（wrappers）”，也就是意味着你可以在不修改函数本身的情况下，在函数调用前和调用后执行代码。
+
+
+
+## 制作一个装饰器
+
+```python
+# 一个装饰器就是使用函数作为参数的函数：
+def my_shiny_new_decorator(a_function_to_decorate):
+
+
+    # 在这里，装饰器定义了一个包装函数
+    # 这个函数将会被原始的函数包装
+    # 这样它才能在调用之前或之后执行代码
+    def the_wrapper_around_the_original_function():
+
+        # 在这里指定被装饰的函数调用之前执行的代码
+        print("Before the function runs")
+
+        # 在这里调用函数（注意要带括号）
+        a_function_to_decorate()
+
+        # 在这里指定被装饰的函数调用之后执行的代码
+        print("After the function runs")
+
+
+    #注意，"a_function_to_decorate"永远不会被执行。
+    # 我们返回我们刚刚创造的包装函数
+    # 这里的包装包括函数体和在它之前或之后执行的代码，我们马上就会用到！
+    return the_wrapper_around_the_original_function
+
+# 现在假设你定义了一个你再也不想碰它的函数：
+def a_stand_alone_function():
+    print("I am a stand alone function, don't you dare modify me")
+
+a_stand_alone_function()
+#outputs: I am a stand alone function, don't you dare modify me
+
+# 你可以通过装饰它拓展它的行为
+# 只要将它传递给装饰器，装饰器将会用你指定的代码动态包装它，
+# 并返回一个你将要使用的新函数
+a_stand_alone_function_decorated = my_shiny_new_decorator(a_stand_alone_function)
+a_stand_alone_function_decorated()
+#outputs:
+#Before the function runs
+#I am a stand alone function, don't you dare modify me
+#After the function runs
+```
+
+现在，你可能想要每次调用`a_stand_alone_function`函数时，都相当于调用`a_stand_alone_function_decorated`函数，这其实很简单，只要用`my_shiny_new_decorator`函数返回的结果覆盖原来的函数就行了。
+
+```python
+a_stand_alone_function = my_shiny_new_decorator(a_stand_alone_function)
+a_stand_alone_function()
+#outputs:
+#Before the function runs
+#I am a stand alone function, don't you dare modify me
+#After the function runs
+
+# 这就是装饰器做的事！
+```
+
+
+
+## 神秘的装饰器
+
+在先前的例子里面，改成使用装饰器语法就是：
+
+```python
+@my_shiny_new_decorator
+def another_stand_alone_function():
+    print("Leave me alone")
+
+another_stand_alone_function()  
+#outputs:  
+#Before the function runs
+#Leave me alone
+#After the function runs
+```
+
+就这么简单！`@decorator`可以看成下面这行代码的缩略版：
+
+```python
+another_stand_alone_function = my_shiny_new_decorator(another_stand_alone_function)
+```
+
+装饰器仅仅是[装饰器设计模型](https://en.wikipedia.org/wiki/Decorator_pattern)的python版本的实现，python里面另外还有几种典型的设计模式帮助你减轻开发任务，迭代器也是其中一种。
+
+毫无疑问，你也可以累加（accumulate）装饰器：
+
+```python
+def bread(func):
+    def wrapper():
+        print("</''''''\>")
+        func()
+        print("<\______/>")
+    return wrapper
+
+def ingredients(func):
+    def wrapper():
+        print("#tomatoes#")
+        func()
+        print("~salad~")
+    return wrapper
+
+def sandwich(food="--ham--"):
+    print(food)
+
+sandwich()
+#outputs: --ham--
+sandwich = bread(ingredients(sandwich))
+sandwich()
+#outputs:
+#</''''''\>
+# #tomatoes#
+# --ham--
+# ~salad~
+#<\______/>
+```
+
+使用python装饰器语法之后：
+
+```python
+@bread
+@ingredients
+def sandwich(food="--ham--"):
+    print(food)
+
+sandwich()
+#outputs:
+#</''''''\>
+# #tomatoes#
+# --ham--
+# ~salad~
+#<\______/>
+```
+
+注意你使用装饰器的顺序很重要：
+
+```·python
+@ingredients
+@bread
+def strange_sandwich(food="--ham--"):
+    print(food)
+
+strange_sandwich()
+#outputs:
+##tomatoes#
+#</''''''\>
+# --ham--
+#<\______/>
+# ~salad~
+```
+
+你现在对装饰器应该有初步的认识了，接下来让我们看看装饰器的其他特性吧！
+
+
+
+## 装饰器进阶
+
+### 传递参数给装饰器函数
+
+```python
+# 这并不是神奇的魔法，只是你必须要让包装函数传递函数：
+
+def a_decorator_passing_arguments(function_to_decorate):
+    def a_wrapper_accepting_arguments(arg1, arg2):
+        print("I got args! Look: {0}, {1}".format(arg1, arg2))
+        function_to_decorate(arg1, arg2)
+    return a_wrapper_accepting_arguments
+
+
+# 因为当你调用由装饰器返回的函数时，你就是在调用包装（wrapper）函数
+# 传递函数给包装（wrapper）函数，它将会传递他们给所装饰的函数。
+
+@a_decorator_passing_arguments
+def print_full_name(first_name, last_name):
+    print("My name is {0} {1}".format(first_name, last_name))
+
+print_full_name("Peter", "Venkman")
+# outputs:
+#I got args! Look: Peter Venkman
+#My name is Peter Venkman
+```
+
+
+
+### 装饰方法
+
+在python中，方法和函数几乎完全相似，唯一不同的地方是方法的第一个参数总是指向它所在的对象（`self`）。
+
+这意味着你也可以对一个方法使用装饰器！前提是要记得将`self`考虑在内：
+
+```python
+def method_friendly_decorator(method_to_decorate):
+    def wrapper(self, lie):
+        lie = lie - 3 # very friendly, decrease age even more :-)
+        return method_to_decorate(self, lie)
+    return wrapper
+
+
+class Lucy(object):
+
+    def __init__(self):
+        self.age = 32
+
+    @method_friendly_decorator
+    def sayYourAge(self, lie):
+        print("I am {0}, what did you think?".format(self.age + lie))
+
+l = Lucy()
+l.sayYourAge(-3)
+#outputs: I am 26, what did you think?
+```
+
+如果你写的装饰器是希望应用到任意的函数或者方法中的，考虑到所装饰的函数及方法有无限种可能的采纳数组合，你需要使用`*args,**kwargs`:
+
+```python
+def a_decorator_passing_arbitrary_arguments(function_to_decorate):
+    # 一个接受任意参数的包装函数：
+    def a_wrapper_accepting_arbitrary_arguments(*args, **kwargs):
+        print("Do I have args?:")
+        print(args)
+        print(kwargs)
+        # 如果你对这种形式的参数不熟悉，可以参考：
+        # http://www.saltycrane.com/blog/2008/01/how-to-use-args-and-kwargs-in-python/
+        function_to_decorate(*args, **kwargs)
+    return a_wrapper_accepting_arbitrary_arguments
+
+@a_decorator_passing_arbitrary_arguments
+def function_with_no_argument():
+    print("Python is cool, no argument here.")
+
+function_with_no_argument()
+#outputs
+#Do I have args?:
+#()
+#{}
+#Python is cool, no argument here.
+
+@a_decorator_passing_arbitrary_arguments
+def function_with_arguments(a, b, c):
+    print(a, b, c)
+
+function_with_arguments(1,2,3)
+#outputs
+#Do I have args?:
+#(1, 2, 3)
+#{}
+#1 2 3
+
+@a_decorator_passing_arbitrary_arguments
+def function_with_named_arguments(a, b, c, platypus="Why not ?"):
+    print("Do {0}, {1} and {2} like platypus? {3}".format(a, b, c, platypus))
+
+function_with_named_arguments("Bill", "Linus", "Steve", platypus="Indeed!")
+#outputs
+#Do I have args ? :
+#('Bill', 'Linus', 'Steve')
+#{'platypus': 'Indeed!'}
+#Do Bill, Linus and Steve like platypus? Indeed!
+
+class Mary(object):
+
+    def __init__(self):
+        self.age = 31
+
+    @a_decorator_passing_arbitrary_arguments
+    def sayYourAge(self, lie=-3): # 你现在可以设置默认参数了
+        print("I am {0}, what did you think?".format(self.age + lie))
+
+m = Mary()
+m.sayYourAge()
+#outputs
+# Do I have args?:
+#(<__main__.Mary object at 0xb7d303ac>,)
+#{}
+#I am 28, what did you think?
+```
+
+
+
+### 传递参数给装饰器
+
+现在，你可能想问该怎么传递参数给装饰器本身呢？
+
+这可能有点复杂，因为装饰器必须接受一个函数作为参数。因此，你不能把被装饰函数的参数直接传给装饰器。
+
+在说解决方法之前，先来看一些实例：
+
+```python
+# 装饰器是一个普通的函数：
+def my_decorator(func):
+    print("I am an ordinary function")
+    def wrapper():
+        print("I am function returned by the decorator")
+        func()
+    return wrapper
+
+
+# 你可以不用通过“@”就调用它
+
+def lazy_function():
+    print("zzzzzzzz")
+
+decorated_function = my_decorator(lazy_function)
+#outputs: I am an ordinary function
+
+# 它的输出是 "I am an ordinary function", 因为上面的代码调用了它
+
+
+@my_decorator
+def lazy_function():
+    print("zzzzzzzz")
+
+#outputs: I am an ordinary function
+```
+
+上面两种情况的输出完全相同，`my_decorator`被调用了，所以当你使用`@my_decotator`时，你正在让python调用`my_decorator`函数。
+
+记住这点很重要！
+
+再看一个实例：
+
+```python
+def decorator_maker():
+
+    print("I make decorators! I am executed only once: "
+          "when you make me create a decorator.")
+
+    def my_decorator(func):
+
+        print("I am a decorator! I am executed only when you decorate a function.")
+
+        def wrapped():
+            print("I am the wrapper around the decorated function. "
+                  "I am called when you call the decorated function. "
+                  "As the wrapper, I return the RESULT of the decorated function.")
+            return func()
+
+        print("As the decorator, I return the wrapped function.")
+
+        return wrapped
+
+    print("As a decorator maker, I return a decorator")
+    return my_decorator
+
+
+# 让我们创造一个装饰器，别忘了，它其实只是个函数。
+
+new_decorator = decorator_maker()       
+#outputs:
+#I make decorators! I am executed only once: when you make me create a decorator.
+#As a decorator maker, I return a decorator
+
+# 然后装饰一个函数吧：
+
+def decorated_function():
+    print("I am the decorated function.")
+
+decorated_function = new_decorator(decorated_function)
+#outputs:
+#I am a decorator! I am executed only when you decorate a function.
+#As the decorator, I return the wrapped function
+
+# 让我们调用函数看看：
+decorated_function()
+#outputs:
+#I am the wrapper around the decorated function. I am called when you call the decorated function.
+#As the wrapper, I return the RESULT of the decorated function.
+#I am the decorated function.
+```
+
+并没有惊喜发生。
+
+我们试试看跳过所有的中间变量：
+
+```python
+def decorated_function():
+    print("I am the decorated function.")
+decorated_function = decorator_maker()(decorated_function)
+#outputs:
+#I make decorators! I am executed only once: when you make me create a decorator.
+#As a decorator maker, I return a decorator
+#I am a decorator! I am executed only when you decorate a function.
+#As the decorator, I return the wrapped function.
+
+# Finally:
+decorated_function()    
+#outputs:
+#I am the wrapper around the decorated function. I am called when you call the decorated function.
+#As the wrapper, I return the RESULT of the decorated function.
+#I am the decorated function.
+```
+
+使用装饰器的语法简短的表达出来就是：
+
+```python
+@decorator_maker()
+def decorated_function():
+    print("I am the decorated function.")
+#outputs:
+#I make decorators! I am executed only once: when you make me create a decorator.
+#As a decorator maker, I return a decorator
+#I am a decorator! I am executed only when you decorate a function.
+#As the decorator, I return the wrapped function.
+
+#Eventually:
+decorated_function()    
+#outputs:
+#I am the wrapper around the decorated function. I am called when you call the decorated function.
+#As the wrapper, I return the RESULT of the decorated function.
+#I am the decorated function.
+```
+
+注意，在上面的例子中，我们使用了一个由`@` 调用的函数。
+
+所以，回到有关于装饰器参数的问题的讨论，如果我们可以使用函数直接生成装饰器，那么我们也可以把参数传递给这个生成装饰器的函数，对吗？
+
+```python
+def decorator_maker_with_arguments(decorator_arg1, decorator_arg2):
+
+    print("I make decorators! And I accept arguments: {0}, {1}".format(decorator_arg1, decorator_arg2))
+
+    def my_decorator(func):
+
+        # 在这里能传递参数是因为闭包（可以理解为内部函数引用外部函数变量的行为）
+        # 如果你对闭包不太理解:
+        # 可以参阅：http://stackoverflow.com/questions/13857/can-you-explain-closures-as-they-relate-to-python
+        print("I am the decorator. Somehow you passed me arguments: {0}, {1}".format(decorator_arg1, decorator_arg2))
+
+        # 注意不要将装饰器参数和函数参数搞混！
+        def wrapped(function_arg1, function_arg2) :
+            print("I am the wrapper around the decorated function.\n"
+                  "I can access all the variables\n"
+                  "\t- from the decorator: {0} {1}\n"
+                  "\t- from the function call: {2} {3}\n"
+                  "Then I can pass them to the decorated function"
+                  .format(decorator_arg1, decorator_arg2,
+                          function_arg1, function_arg2))
+            return func(function_arg1, function_arg2)
+
+        return wrapped
+
+    return my_decorator
+
+@decorator_maker_with_arguments("Leonard", "Sheldon")
+def decorated_function_with_arguments(function_arg1, function_arg2):
+    print("I am the decorated function and only knows about my arguments: {0}"
+           " {1}".format(function_arg1, function_arg2))
+
+decorated_function_with_arguments("Rajesh", "Howard")
+#outputs:
+#I make decorators! And I accept arguments: Leonard Sheldon
+#I am the decorator. Somehow you passed me arguments: Leonard Sheldon
+#I am the wrapper around the decorated function.
+#I can access all the variables
+#   - from the decorator: Leonard Sheldon
+#   - from the function call: Rajesh Howard
+#Then I can pass them to the decorated function
+#I am the decorated function and only knows about my arguments: Rajesh Howard
+```
+
+这就是一个含有装饰器的参数的实例。装饰器的参数可以是一个变量：
+
+```python
+c1 = "Penny"
+c2 = "Leslie"
+
+@decorator_maker_with_arguments("Leonard", c1)
+def decorated_function_with_arguments(function_arg1, function_arg2):
+    print("I am the decorated function and only knows about my arguments:"
+           " {0} {1}".format(function_arg1, function_arg2))
+
+decorated_function_with_arguments(c2, "Howard")
+#outputs:
+#I make decorators! And I accept arguments: Leonard Penny
+#I am the decorator. Somehow you passed me arguments: Leonard Penny
+#I am the wrapper around the decorated function.
+#I can access all the variables
+#   - from the decorator: Leonard Penny
+#   - from the function call: Leslie Howard
+#Then I can pass them to the decorated function
+#I am the decorated function and only knows about my arguments: Leslie Howard
+```
+
+如前所述，你可以使用这个技巧传递参数给装饰器。你乐意的话也可以使用`*args,**kwargs` ，但要记得装饰器仅被调用一次，仅在python导入这个脚本时，之后你就不可以动态的设置参数，当你使用类似`import x`语句导入时，这个函数已经被装饰过了，所以你不能改变任何事情。
+
+
+
+---
+
+
+
+## 实践：装饰一个装饰器
+
+让我们尝试位装饰器写一个装饰器：
+
+```python
+def decorator_with_args(decorator_to_enhance):
+    """
+    这个函数应该被当成一个装饰器
+    它必须装饰另外一个被当成装饰器的函数
+    它会让任何它装饰的装饰器接受任意数量的参数
+
+    """
+
+    # 我们使用相同的技巧来传递参数
+    def decorator_maker(*args, **kwargs):
+
+
+        # 我们直接创建了只接受一个函数作为参数的装饰器
+        # 但是保存从maker函数而来的参数
+        def decorator_wrapper(func):
+
+
+            # 最重要的是，要返回原装饰器的返回的结果。
+            # 这只是一个普通的返回函数的函数
+            # 注意： 被装饰的那个装饰器的参数格式必须和下面返回的这个相同
+            # 否则会报错
+            return decorator_to_enhance(func, *args, **kwargs)
+
+        return decorator_wrapper
+
+    return decorator_maker
+```
+
+以上定义的函数可以这么使用：
+
+```python
+# 在这里你创造了一个用作装饰器的函数，然后在这个用作装饰器的函数上使用装饰器
+# 别忘了，我们要创建的函数格式应该是"decorator(func, *args, **kwargs)"
+@decorator_with_args
+def decorated_decorator(func, *args, **kwargs):
+    def wrapper(function_arg1, function_arg2):
+        print("Decorated with {0} {1}".format(args, kwargs))
+        return func(function_arg1, function_arg2)
+    return wrapper
+
+# 然后用这个被装饰过的装饰器去装饰其他函数吧：
+@decorated_decorator(42, 404, 1024)
+def decorated_function(function_arg1, function_arg2):
+    print("Hello {0} {1}".format(function_arg1, function_arg2))
+
+decorated_function("Universe and", "everything")
+#outputs:
+#Decorated with (42, 404, 1024) {}
+#Hello Universe and everything
+
+```
+
+看到这里，有没有感觉你掌握了装饰器了呢？
+
+
+
+## 装饰器最佳实践
+
+那么现在问题来了，我们可以使用装饰器做什么？
+
+额，装饰器是一个简洁且强大的东西，有很多情况下我们都会用到装饰器。经典的用法是使用装饰器拓展一个外部库（你无法修改它）的函数的行为，或者用来调试你暂时不想修改的函数。
+
+你可以用自定义的方式使用装饰器去拓展多个函数，比如：
+
+```python
+def benchmark(func):
+    """
+    一个打印函数运行时间的装饰器
+    """
+    import time
+    def wrapper(*args, **kwargs):
+        t = time.clock()
+        res = func(*args, **kwargs)
+        print("{0} {1}".format(func.__name__, time.clock()-t))
+        return res
+    return wrapper
+
+
+def logging(func):
+    """
+    一个记录函数运行情况的装饰器
+    （其实只是将函数和参数打印出来而已）
+    """
+    def wrapper(*args, **kwargs):
+        res = func(*args, **kwargs)
+        print("{0} {1} {2}".format(func.__name__, args, kwargs))
+        return res
+    return wrapper
+
+
+def counter(func):
+    """
+    一个计算并打印出函数已被执行的时间
+    """
+    def wrapper(*args, **kwargs):
+        wrapper.count = wrapper.count + 1
+        res = func(*args, **kwargs)
+        print("{0} has been used: {1}x".format(func.__name__, wrapper.count))
+        return res
+    wrapper.count = 0
+    return wrapper
+
+@counter
+@benchmark
+@logging
+def reverse_string(string):
+    return str(reversed(string))
+
+print(reverse_string("Able was I ere I saw Elba"))
+print(reverse_string("A man, a plan, a canoe, pasta, heros, rajahs, a coloratura, maps, snipe, percale, macaroni, a gag, a banana bag, a tan, a tag, a banana bag again (or a camel), a crepe, pins, Spam, a rut, a Rolo, cash, a jar, sore hats, a peon, a canal: Panama!"))
+
+#outputs:
+#reverse_string ('Able was I ere I saw Elba',) {}
+#wrapper 0.0
+#wrapper has been used: 1x
+#ablE was I ere I saw elbA
+#reverse_string ('A man, a plan, a canoe, pasta, heros, rajahs, a coloratura, maps, snipe, percale, macaroni, a gag, a banana bag, a tan, a tag, a banana bag again (or a camel), a crepe, pins, Spam, a rut, a Rolo, cash, a jar, sore hats, a peon, a canal: Panama!',) {}
+#wrapper 0.0
+#wrapper has been used: 2x
+#!amanaP :lanac a ,noep a ,stah eros ,raj a ,hsac ,oloR a ,tur a ,mapS ,snip ,eperc a ,)lemac a ro( niaga gab ananab a ,gat a ,nat a ,gab ananab a ,gag a ,inoracam ,elacrep ,epins ,spam ,arutaroloc a ,shajar ,soreh ,atsap ,eonac a ,nalp a ,nam A
+```
+
+当然，装饰器的有一个好处是你可以在不用重写任何东西的情况下使用它们：
+
+```python
+@counter
+@benchmark
+@logging
+def get_random_futurama_quote():
+    from urllib import urlopen
+    result = urlopen("http://subfusion.net/cgi-bin/quote.pl?quote=futurama").read()
+    try:
+        value = result.split("<br><b><hr><br>")[1].split("<br><br><hr>")[0]
+        return value.strip()
+    except:
+        return "No, I'm ... doesn't!"
+
+
+print(get_random_futurama_quote())
+print(get_random_futurama_quote())
+
+#outputs:
+#get_random_futurama_quote () {}
+#wrapper 0.02
+#wrapper has been used: 1x
+#The laws of science be a harsh mistress.
+#get_random_futurama_quote () {}
+#wrapper 0.01
+#wrapper has been used: 2x
+#Curse you, merciful Poseidon!
+```
+
+Python中提供了几个装饰器：`property`, `staticmethod`, 等等。
+
+一些使用装饰器的框架：
+
+* Django 使用装饰器管理缓存和视图权限。
+* Twisted 使用装饰器调用内嵌异步函数
+
+
+
+## 最后的话
+
+
+
+本篇文章来自于[stackoverflow中一个关于python装饰器问答下的高票回答](http://stackoverflow.com/questions/739654/how-to-make-a-chain-of-function-decorators-in-python/1594484#1594484)，因为本人英语水平所限，文章可能有纰漏之处，欢迎指正，同时建议对自己英语自信的同学还是查看原答案吧，毕竟学会用英语获取知识也是一项很优秀的技能哦！

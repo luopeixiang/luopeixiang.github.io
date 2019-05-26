@@ -1,0 +1,236 @@
+---
+layout:     post
+title:      "shell脚本"
+subtitle:   ""
+date:       2016-10-8
+author:     "MaggicQ"
+tags:
+    - Linux
+    - shell编程
+---
+
+
+# shell脚本
+
+## 概念
+
+shell是指一种应用程序，这个应用程序提供了一个界面，用户通过这个界面访问操作系统内核的服务。所谓shell脚本 ，是一种为shell编写的脚本程序，在shell脚本里，通常是一条条命令，通过shell脚本，可以避免在shell下一条条的键入命令。
+
+
+
+## 脚本解释器
+
+脚本解释器就是能解释执行shell脚本的东西。Linux下Shell种类众多，常见的有：
+
+* **sh** , 即Bourne shell，POSIX（Portable Operating System Interface）标准的shell解释器，它的二进制文件路径通常是/bin/sh 。
+* **Bash** , 是Bourne shell的替代品，属GNU Project，二进制文件路径通常是/bin/bash。
+
+一般来说这两者区别并不是很大。关于这两者的细微区别 ，可以参考 [#!/bin/sh与#!/bin/bash的区别](http://blog.chinaunix.net/uid-27037833-id-3431985.html)  这篇文章 。
+
+其余shell种类还有：
+
+- C Shell（/usr/bin/csh）
+
+
+- K Shell（/usr/bin/ksh）
+
+等等。
+
+
+
+## 执行第一个shell脚本
+
+```sh
+#!/bin/bash
+echo "Hello World !"
+```
+
+将上述文件保存在当前工作目录，并命名位`test.sh` , 然后通过执行`sh ./test.sh`命令就可以看到下面这个输出：
+
+```sh
+luo@luo-ThinkPad-Edge-E431:~$ sh ./test.sh
+Hello World !
+```
+
+下面分析一下这个脚本，第一行`#!/bin/bash`中`#！`是一个标记，他告诉系统这个脚本需要用什么解释器来执行，这里指定的是bash ，第二行的语句是打印`Hello World ！ `。
+
+
+
+## 变量
+
+### 定义变量
+
+可以向我们所熟悉的其他编程语言一样定义：
+
+```sh
+num=5
+```
+
+或者：
+
+```sh
+name="luo"
+```
+
+如果重新给变量赋值，会直接覆盖掉原来的值。
+
+
+
+### 使用变量
+
+使用定义过的变量只要在变量名前加`$`就行了。
+
+```sh
+luo@luo-ThinkPad-Edge-E431:~$ name='luo'
+luo@luo-ThinkPad-Edge-E431:~$ echo $name
+luo
+luo@luo-ThinkPad-Edge-E431:~$ echo ${name}
+luo
+```
+
+第二种情况的花括号是可选的，加花括号是为了帮助解释器识别变量的边界。
+
+
+
+## 注释
+
+以`#`开头的行就是注释，解释器执行到以`#`开头的行就会自动忽略。如果想添加多行注释，只能在每一行面前都加上`#` 。
+
+## 字符串
+
+字符串是shell里面最常用的数据类型。
+
+### 单引号字符串
+
+单引号字符串的限制：
+
+- 单引号里的任何字符都会原样输出，单引号字符串中的变量是无效的
+- 单引号字串中不能出现单引号（对单引号使用转义符后也不行）
+
+```sh
+str='this is a string'
+```
+
+### 双引号
+
+与单引号括起来的字符串不同的是：
+
+- 双引号里可以有变量
+- 双引号里可以出现转义字符
+
+比如：
+
+```sh
+luo@luo-ThinkPad-Edge-E431:~$ your_name='qinjx'
+luo@luo-ThinkPad-Edge-E431:~$ str="Hello, I know your are \"$your_name\"! \n"
+luo@luo-ThinkPad-Edge-E431:~$ echo $str
+Hello, I know your are "qinjx"! \n
+```
+
+### 获取字符串长度：
+
+```
+string="abcd"
+echo ${#string} #输出：4
+```
+
+### 提取子字符串
+
+```
+string="alibaba is a great company"
+echo ${string:1:4} #输出：liba
+
+```
+
+
+
+## shell流程控制
+
+### if语句格式：
+
+```sh
+if condition
+then
+    command1
+    command2
+    ...
+    commandN
+fi
+```
+
+
+
+### if-else语句格式：
+
+```sh
+if condition
+then
+    command1
+    command2
+    ...
+    commandN
+else
+    command
+fi
+```
+
+
+
+### for 循环
+
+```sh
+for var in item1 item2 ... itemN
+do
+    command1
+    command2
+    ...
+    commandN
+done
+```
+
+
+
+### while循环
+
+```sh
+while condition
+do
+    command
+done
+```
+
+
+
+对于跳出循环可以使用`break`和`continue`，他们的用法和python中类似 。
+
+
+
+## 文件包含
+
+和其他语言一样，Shell 也可以包含外部脚本。这样可以很方便的封装一些公用的代码作为一个独立的文件。
+
+Shell 文件包含的语法格式如下：
+
+```sh
+. filename   # 注意点号(.)和文件名中间有一空格
+```
+
+或者是
+
+```sh
+source filename
+```
+
+
+
+## 总结
+
+关于shell编程，我觉得其实不用掌握的太深入，平时只用能够读得懂并能写出简单的shell程序就可以了，对于一些复杂的任务，还是要交给像**python**这样强大而又简单易上手（**python大法好**）的脚本语言来执行才靠谱！
+
+另附一些关于shell脚本的详细介绍：
+
+[UNIX-shell](http://www.tutorialspoint.com/unix/unix-shell.htm)
+
+[Advanced Bash-Scripting Guide](http://tldp.org/LDP/abs/html/)
+
+[shell教程](http://www.runoob.com/linux/linux-shell.html)
