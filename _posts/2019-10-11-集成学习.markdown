@@ -49,13 +49,14 @@ Bagging族算法最著名的代表是Adaboost。
 
 下面是Adaboost的算法流程：
 
-输入： 训练数据集$\mathrm{T}=\left\{\left(\mathrm{x}\_{1}, \mathrm{y}\_{1}\right),\left(\mathrm{x}\_{2}, \mathrm{y}\_{2}\right), \ldots,\left(\mathrm{x}_{\mathrm{N}}, \mathrm{y}\_{\mathrm{N}}\right)\right\}$， 其中$x_i \in \mathcal{X} \in R^n$ ，$y_i \in \mathcal{Y} = \{-1, +1\}$ ； 弱学习算法；
+输入： 训练数据集
+$$\mathrm{T}=\left\{\left(\mathrm{x}\_{1}, \mathrm{y}\_{1}\right),\left(\mathrm{x}\_{2}, \mathrm{y}\_{2}\right), \ldots,\left(\mathrm{x}_{\mathrm{N}}, \mathrm{y}\_{\mathrm{N}}\right)\right\}$$， 
+其中$x_i \in \mathcal{X} \in R^n$ ，$y_i \in \mathcal{Y} = \{-1, +1\}$ ； 弱学习算法；
 
 输出：最终分类器$G(x)$。
 
 1. 初始化训练数据的权值分布
-   $$ X_{1}  x_{2}
-   \cdots \frac{1}{2}= X{2} $$
+   $$ X_{1}  x_{2} \cdots \frac{1}{2}= X{2} $$
 
    ​
    $$ D\_{1}=(w\_{11} \cdots, w\_{1 i}, \cdots, w\_{1 N}),  
@@ -64,7 +65,7 @@ Bagging族算法最著名的代表是Adaboost。
 
 
 
-2. 对$M = 1,2, ...m$
+2. 对$$M = 1,2, ...m$$
 
    1. 使用具有权值分布$D_m$的训练数据集学习，得到基本分类器
       $$

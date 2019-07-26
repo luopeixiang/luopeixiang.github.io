@@ -35,7 +35,7 @@ tags:
 
 假设我们想要生成以下HTML内容：
 
-```html
+```code
 <p>Welcome, Charlie!</p>
 <p>Products:</p>
 <ul>
@@ -44,6 +44,7 @@ tags:
     <li>Pomegranate: $3.25</li>
 </ul>
 ```
+
 
 在这里，用户的名字（这里是 *Charlie*）和商品以及商品价格都是动态生成的。那么我们如何使用python生成这些内容呢？我们可以把要生成的html当成一个字符串，而其中动态生成的部分使用参数传入：
 
