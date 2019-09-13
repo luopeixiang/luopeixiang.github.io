@@ -1,0 +1,723 @@
+---
+layout:     post
+title:      "文本表示模型"
+subtitle:   ""
+date:       2019-06-18
+author:     "MaggicQ"
+header-img: "img/post-bg-e2e-ux.jpg"
+tags:
+    - 文本表示模型
+    - Word2vec
+    - Glove
+    - fasttext
+    - Elmo
+    - GPT
+    - Bert
+---
+
+**本文目录**
+* TOC
+{:toc}
+
+
+# 文本表示模型
+
+
+
+## 词袋模型
+
+将整段文本以词为单位切分开，然后每篇文章可以表示成一个长向量，向量中的每一维代表一个单词，而该维对应的权重则反应了这个词在原文章中的重要程度。常用TF-IDF来计算词的权重。
+
+
+
+## N-gram模型
+
+将连续出现的n个词组成的词组（N-gram）作为一个单独的特征放到向量表示中。
+
+
+
+## 主题模型
+
+基于词袋模型或者N-gram模型的文本表示模型有一个明显的缺陷，就是无法识别出两个不同的词或词组具有相同的主题，比如 bisicle以及car 都表达的是traffic的主题，但在词袋模型以及N-Gram方法，bisicle以及car的表示并无关联 。因此，需要一种技术能够将具有相同主题的词或词组映射到同一维度上去，于是就有了主题模型。
+
+
+
+所有主题模型都基于相同的基本假设：
+
+- 每个文档包含多个主题；
+- 每个主题包含多个单词。
+
+常见的主题模型有**LSA**( Latent Semantic Analysis)，**pLSA**(Probabilistic Latent Semantic Analysis)，**LDA**(Latent Dirichlet Allocation)
+
+
+
+> 判定两个不同的词具有相同的主题的**主要依据**：相同主题的词语会有更高的几率出现在同一篇文档里面。
+>
+> 假设有K个主题，我们就把任意文章表示成一个K维的主题向量，其中向量的每一维表示一个主题，权重表示这篇文章属于这个特定主题的概率。主题模型做的事，就是从文本库中发现有代表性的主题（得到每个主题上面词的分布），并且计算出每篇文章对应哪些主题。
+
+### 潜在语义分析（Latent Semantic Analysis）
+
+潜在语义分析（LSA）是主题建模的基础技术之一。其核心思想是把我们所拥有的文档-术语矩阵分解成相互独立的文档-主题矩阵和主题-术语矩阵。
+
+第一步是生成文档-术语矩阵。如果在词汇表中给出 $m$ 个文档和 $n$ 个单词，我们可以构造一个 $m×n$ 的矩阵$ A_{m \times n}$，其中每行代表一个文档，每列代表一个单词，矩阵的权重通常选择其对应的$tf-idf$分数值。
+
+一旦拥有文档-术语矩阵 A，我们就可以开始思考潜在主题。问题在于：**A 极有可能非常稀疏、噪声很大**，并且在很多维度上非常冗余。因此，**为了找出能够捕捉单词和文档关系的少数潜在主题**，我们希望能**降低矩阵 A 的维度**。
+
+这种降维可以使用 SVD 来实现。假设文档-术语矩阵$A_{m \times n}$的奇异值分解为$A_{m \times n} = U_{m \times m}S_{m \times n}V_{n \times n}$
+
+，具体的做法是选择奇异值中最大的$t$个数，且只保留矩阵$U$和$V$的前$t$列，如下图所示：
+
+![](/img/blog_imgs/svd_t.png)
+
+在这种情况下，$U \in R^{m \times t}$是我们的**文档-主题矩阵**，而$V \in R^{n \times t}$则成为我们的**术语-主题矩阵**。在矩阵 $U$ 和$ V$ 中，每一列对应于我们 $t $个主题当中的一个。在 $U$ 中，行表示按主题表达的文档向量；在 $V$ 中，行代表按主题表达的术语(term)向量。
+
+通过这些文档向量和术语向量，现在我们可以轻松应用余弦相似度等度量来评估以下指标：
+
+- 不同文档的相似度
+- 不同单词的相似度
+- 术语（或「queries」）与文档的相似度（当我们想要检索与查询最相关的段落，即进行信息检索时，这一点将非常有用）
+
+
+
+在 sklearn 中，LSA 的简单实现可能如下所示：
+``` python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.pipeline import Pipeline
+documents = ["doc1.txt", "doc2.txt", "doc3.txt"] 
+
+# raw documents to tf-idf matrix: 
+vectorizer = TfidfVectorizer(stop_words='english', 
+                             use_idf=True, 
+                             smooth_idf=True)
+# SVD to reduce dimensionality: 
+svd_model = TruncatedSVD(n_components=100,         // num dimensions
+                         algorithm='randomized',
+                         n_iter=10)
+# pipeline of tf-idf + SVD, fit to and applied to documents:
+svd_transformer = Pipeline([('tfidf', vectorizer), 
+                            ('svd', svd_model)])
+svd_matrix = svd_transformer.fit_transform(documents)
+
+# svd_matrix can later be used to compare documents, compare words, or compare queries with documents
+```
+
+LSA 方法快速且高效，但它也有一些主要缺点：
+
+- 缺乏可解释的嵌入（我们并不知道主题是什么，其成分可能积极或消极，这一点是随机的）
+- 需要大量的文件和词汇来获得准确的结果
+- 表征效率低
+
+
+
+### 概率潜在语义分析（Probabilistic Latent Semantic Analysis）
+
+pLSA，即概率潜在语义分析，采取概率方法替代 SVD 以解决问题。其**核心思想**是找到一个潜在主题的概率模型，该**模型可以生成我们在文档-术语矩阵中观察到的数据**。特别是，我们需要一个模型$ P(D,W)$，使得对于任何文档 $d$ 和单词 $w$，$P(d,w) $能对应于文档-术语矩阵中的那个条目。
+
+以下是pLSA模型:
+
+![](/img/blog_imgs/plsa.png)
+
+
+
+假设有K个主题，M篇文章，对语料库中的任意文章d，假设该文章有N个词，对于其中的每一个词，我们首先选择一个主题z，然后在当前主题的基础上生成一个词w，若在给定主题z的条件下，生成此的概率与特定的文章无关，那么：
+
+$$
+
+p(w | d) = \sum_{z} p(w| z)p(z | d)
+
+$$
+
+整个**语料库中的文本生成概率**可以用似然函数表示为：
+
+$$
+
+L = \prod_m^M\prod_n^Np(d_m, w_n)^{c(d_m, w_n)}
+
+$$
+
+其中$p(d_m, w_n)$是在第$m$篇文章$d_m$中，出现单词$w_n$的概率，有：
+
+$$
+
+p(d_m, w_n) = p(d_m) * p(w_n | d_m)
+
+$$
+
+
+
+而$c(d_m, w_n)$是在第$m$篇文章$d_m$中，出现单词$w_n$出现的次数。
+
+从而，Log似然函数可以写成:
+
+$$
+
+\begin{aligned}
+l &=  \prod_m^M\prod_n^N{c(d_m, w_n)}log p(d_m, w_n) \\
+ &= \sum_m^M\sum_n^Nc(d_m, w_n)log\sum_k^Kp(d_m)p(z_k | d_m)p(w_n | z_k)
+ \end{aligned}
+
+$$
+
+在上面的公式中，定义在**文章上的主题分布**$p(z_k \| d_m)$和定义**在主题上的词分布**$p(w_n \| z_k)$是带估计的参数。实际上，定义在**文章上的主题分布**$p(z_k \| d_m)$可看成对应于$LSA$中的文档-主题矩阵 U，定义**在主题上的词分布**$p(w_n \| z_k)$对应于术语-主题矩阵 V。
+
+我们训练的目标就是，找到最优的参数，使得整个语料库的$Log$似然函数最大化。由于参数中包含的$z_k$是隐含变量，因此无法用最大似然估计直接求解，可以利用最大期望算法来解决。
+
+pLSA 是一个更加灵活的模型，但仍然存在一些问题，尤其表现为：
+
+- 因为我们没有参数来给 $P(d)$ 建模，所以不知道如何为新文档分配概率
+- pLSA 的参数数量随着我们拥有的文档数线性增长，因此容易出现过度拟合问题
+
+实际应用中通常很少会单独使用pLSA.
+
+
+
+### 隐狄利克雷模型(Latent Dirichlet Allocation, LDA)
+
+LDA可以看成是pLSA的贝叶斯版本，其文本生成过程与pLSA基本相同，但LDA为主题分布和次分布分别加了两个狄利克雷（Dirichlet）先验。
+
+> 关于狄利克雷分布：[维基百科](https://zh.wikipedia.org/wiki/%E7%8B%84%E5%88%A9%E5%85%8B%E9%9B%B7%E5%88%86%E5%B8%83)
+
+pLSA采用的是**频率派思想** ， 将每篇文章对应的主题分布$p(z_k\|d_m)$和每个主题对应的词分布$p(w_n\|z_k)$看
+成确定的未知常数,并可以求解出来；而LDA采用的是贝叶斯学派的思想，认为待估计的参数(主题分布和词分布)不再是一个固定的常数，而是服从一定分布的随机变量。这个分布符合一定的先验概率分布(即狄利克雷分布)，且在观察到样本信息之后，可对先验分布进行修正，从而得到后验分布。
+
+
+
+语料库的生成过程：对文本库中的每一篇文档$d_i$，采用以下操作
+
+1. 从超参数为$\alpha$的狄利克雷分布中抽样生成文档$d_i$的主题分布$\theta_i$
+
+2. 对文档$d_i$中的每一个词进行以下三个操作：
+
+   ![](/img/blog_imgs/lda.png)
+
+
+以下是LDA的模型:
+
+![](/img/blog_imgs/lda_model.png)
+
+
+
+通常而言，LDA 比 pLSA 效果更好，因为它可以轻而易举地泛化到新文档中去。在 pLSA 中，文档概率是数据集中的一个固定点。如果没有看到那个文件，我们就没有那个数据点。然而，在 LDA 中，数据集作为训练数据用于文档-主题分布的狄利克雷分布。即使没有看到某个文件，我们可以很容易地从狄利克雷分布中抽样得来，并继续接下来的操作。
+
+**代码实现**
+
+LDA 无疑是最受欢迎（且通常来说是最有效的）主题建模技术。它在 gensim 当中可以方便地使用：
+
+```python
+from gensim.corpora.Dictionary import load_from_text, doc2bow
+from gensim.corpora import MmCorpus
+from gensim.models.ldamodel import LdaModel
+document = "This is some document..."
+# load id->word mapping (the dictionary)
+id2word = load_from_text('wiki_en_wordids.txt')
+# load corpus iterator
+mm = MmCorpus('wiki_en_tfidf.mm')
+# extract 100 LDA topics, updating once every 10,000
+lda = LdaModel(corpus=mm, id2word=id2word, num_topics=100, update_every=1, chunksize=10000, passes=1)
+# use LDA model: transform new doc to bag-of-words, then apply lda
+doc_bow = doc2bow(document.split())
+doc_lda = lda[doc_bow]
+# doc_lda is vector of length num_topics representing weighted presence of each topic in the doc
+```
+
+通过使用 LDA，我们可以从文档语料库中提取人类可解释的主题，其中每个主题都以与之关联度最高的词语作为特征。例如，主题 2 可以用诸如「石油、天然气、钻井、管道、楔石、能量」等术语来表示。此外，在给定一个新文档的条件下，我们可以获得表示其主题混合的向量，例如，5％ 的主题 1，70％ 的主题 2，10％的主题 3 等。通常来说，这些向量对下游应用非常有用。
+
+
+
+
+## 词嵌入（Word Embedding）与深度学习模型
+
+将每个词都映射为低维空间（50维，300维等），假设文本中单词的个数是$N$, 词向量的维数是$K$ , 我们就能用一个$ N \times K $大小的矩阵来表示文档了，但是实际应用中这样的效果并不好。实际应用中，通常使用卷积神经网络（CNN）或者是循环神经网络（RNN）来对文本进行建模。词嵌入模型也有很多种，常用的有word2vec, glove等。
+
+
+
+### NNLM(神经网络语言模型)
+
+NNLM的常用结构如下：
+
+![](/img/blog_imgs/nnlm.png)
+
+
+
+
+
+**输入**：某个句中单词 $W_t$ 前面句子的t-1个单词，要求网络正确预测单词Bert，
+
+**输出**：每个单词的概率
+
+目标是最大化：
+$$
+  P(W_t|W_1,W_2,…W_(t-1);θ) 
+$$
+
+
+训练过程：
+
+前面任意单词 $W_i$ 用Onehot编码（比如：0001000）作为原始单词输入，之后乘以矩阵Q后获得向量 $C(W_i )$ ，每个单词的 $C(W_i )$ 拼接，上接隐层，然后接softmax去预测后面应该后续接哪个单词。这个 $C(W_i )$ 是什么？这其实就是单词对应的Word Embedding值，那个矩阵Q包含V行，V代表词典大小，每一行内容代表对应单词的Word embedding值。只不过Q的内容也是网络参数，需要学习获得，训练刚开始用随机值初始化矩阵Q，当这个网络训练好之后，矩阵Q的内容被正确赋值，每一行代表一个单词对应的Word embedding值。通过网络学习语言模型任务，这个网络不仅自己能够根据上文预测后接单词是什么，同时获得一个副产品，就是那个矩阵Q，这就是单词的Word Embedding是被如何学会的。
+
+
+
+### DNN
+
+在word2vec出现之前，已经有用神经网络DNN来用训练词向量进而处理词与词之间的关系了。采用的方法一般是一个三层的神经网络结构（当然也可以多层），分为输入层，隐藏层和输出层(softmax层)。这个模型是如何定义数据的输入和输出呢？一般分为CBOW(Continuous Bag-of-Words 与Skip-Gram两种模型。
+
+**CBOW模型**的训练**输入是某一个特征词的上下文相关的词对应的词向量**，而**输出就是这特定的一个词的词向量**。举一个例子：
+
+![](/img/blog_imgs/cbow_example.png)
+
+在这个例子里面，目标单词为`learning`，它周围的八个单词作为上下文，那么模型的输入是代表context的8个词向量，输出是所有词的softmax概率。训练目标是是目标单词的概率尽可能大。
+
+**Skip-Gram模型**和CBOW的思路是反着来的，即**输入是特定的一个词的词向量**，而**输出是特定词对应的上下文词向量**。还是上面的例子，我们的上下文大小取值为4， 特定的这个词"Learning"是我们的输入，而这8个上下文词是我们的输出。
+
+这样我们这个Skip-Gram的例子里，我们的输入是特定词， 输出是softmax概率排前8的8个词，对应的Skip-Gram神经网络模型输入层有1个神经元，输出层有词汇表大小个神经元。隐藏层的神经元个数我们可以自己指定。通过DNN的反向传播算法，我们可以求出DNN模型的参数，同时得到所有的词对应的词向量。这样当我们有新的需求，要求出某1个词对应的最可能的8个上下文词时，我们可以通过一次DNN前向传播算法得到概率大小排前8的softmax概率对应的神经元所对应的词即可。
+
+以上就是神经网络语言模型中如何用CBOW与Skip-Gram来训练模型与得到词向量的大概过程。但是这和word2vec中用CBOW与Skip-Gram来训练模型与得到词向量的过程有很多的不同。
+
+word2vec为什么 不用现成的DNN模型，要继续优化出新方法呢？最主要的问题是**DNN模型的这个处理过程非常耗时**。我们的词汇表一般在百万级别以上，这意味着我们DNN的输出层需要进行softmax计算各个词的输出概率的的计算量很大。
+
+
+
+### Word2vec
+
+word2Vec 有两种模型：**CBOW** 和 **Skip-Gram：**
+
+- CBOW 在已知 `context(w)` 的情况下，预测 `w`；
+- Skip-Gram在已知 `w` 的情况下预测 `context(w)` ；
+
+
+
+#### 基于Hierarchical Softmax的模型
+
+word2vec也使用了CBOW与Skip-Gram来训练模型与得到词向量，但是并没有使用传统的DNN模型。最先优化使用的数据结构是用霍夫曼树来代替隐藏层和输出层的神经元，霍夫曼树的**叶子节点起到输出层神经元的作用**，叶子节点的个数即为词汇表的大小。 而**内部节点则起到隐藏层神经元的作用**。
+
+> [**霍夫曼树的定义**](https://baike.baidu.com/item/%E5%93%88%E5%A4%AB%E6%9B%BC%E6%A0%91)：给定n个权值作为n个叶子结点，构造一棵二叉树，若该树的带权路径长度达到最小，称这样的二叉树为最优二叉树，也称为哈夫曼树(Huffman Tree)。霍夫曼树是带权路径长度最短的树，权值较大的结点离根较近。
+>
+> **霍夫曼树的建立过程**：
+>
+> 输入：权值为$(w_1,w_2,...w_n)$的$n$个节点
+>
+> 输出：对应的霍夫曼树
+>
+> 1）将$(w_1,w_2,...w_n)$看做是有$n$棵树的森林，每个树仅有一个节点。
+>
+> 2）在森林中选择根节点权值最小的两棵树进行合并，得到一个新的树，这两颗树分布作为新树的左右子树。新树的根节点权重为左右子树的根节点权重之和。
+>
+> 3） 将之前的根节点权值最小的两棵树从森林删除，并把新树加入森林。
+>
+> 4）重复步骤2）和3）直到森林里只有一棵树为止。
+>
+> **霍夫曼树的好处**：一般得到霍夫曼树后我们会对叶子节点进行霍夫曼编码，由于权重高的叶子节点越靠近根节点，而权重低的叶子节点会远离根节点，这样我们的高权重节点编码值较短，而低权重值编码值较长。这保证的树的带权路径最短，也符合我们的信息论，即我们希望越常用的词拥有更短的编码。
+
+在霍夫曼树中，隐藏层到输出层的softmax映射不是一下子完成的，而是沿着霍夫曼树一步步完成的，因此这种softmax取名为"Hierarchical Softmax"。这个映射的过程是怎么样的？
+
+具体的做法是这样的：在word2vec中，我们采用了二元逻辑回归的方法，即规定沿着左子树走，那么就是负类(霍夫曼树编码1)，沿着右子树走，那么就是正类(霍夫曼树编码0)。判别正类和负类的方法是使用sigmoid函数，即：
+
+$$
+
+P(+) = \sigma(x_w^T\theta) = \frac{1}{1+e^{-x_w^T\theta}} \\
+P(-) = 1- P(+)
+
+$$
+
+其中$x_w$是当前内部节点的词向量，而$\theta$则是我们需要从训练样本求出的逻辑回归的模型参数，这两个变量决定当前节点要沿左子树走还是右子树走。举个例子：
+
+
+
+![](/img/blog_imgs/huofuman.png)
+
+
+
+对于上图中的$w_2$，如果它是一个训练样本的输出，那么我们期望对于里面的隐藏节点$n(w_2,1)$的$P(−)$概率大，$n(w_2,2)$的$P(−)$概率大，$n(w2,3)$的$P(+)$概率大。
+
+回到基于Hierarchical Softmax的word2vec本身，我们的目标就是找到合适的所有节点的词向量和所有内部节点$\theta$, 使训练样本达到最大似然（这里面的数学推导就不详细展开了，如果需要可参考：[word2vec原理(二) 基于Hierarchical Softmax的模型](http://www.cnblogs.com/pinard/p/7243513.html)) 。
+
+
+
+>  在这里使用霍夫曼树的好处如下：
+>
+>  - 由于是二叉树，之前计算量为$V$,现在变成了$log_2V$。
+>  - 由于使用霍夫曼树是高频的词靠近树根，这样高频词需要更少的时间会被找到，这符合我们的贪心优化思想。
+
+
+
+了解了上述概念之后，下面给出基于Hierarchical Softmax的Word2vec模型算法流程，梯度迭代使用了随机梯度上升法：
+
+**输入**：基于CBOW的语料训练样本，词向量的维度大小$M$，CBOW的上下文大小$2c$,学习率$\alpha$
+
+**输出**：霍夫曼树的内部节点模型参数$\theta$，所有的词向量$w$
+
+**计算步骤**：
+
+1. 基于语料训练样本建立霍夫曼树
+
+2. 随机初始化所有的模型参数$\theta$，所有的词向量$w$
+
+3. 进行梯度上升迭代过程，直到梯度收敛
+
+
+
+CBOW和Skip-gram在这里的区别是：CBOW中的目标函数是使条件概率 $P(w\|context(w))$ 最大化，而Skip-gram中的目标函数是使条件概率 $P(context(w)\|w)$ 最大化。
+
+#### 基于Negative Sampling的模型
+
+negative sampling是一种不同于hierarchical softmax的优化策略，相比于hierarchical softmax，negative sampling的想法更直接——**为每个训练实例都提供负例。**
+
+**训练过程**：比如我们有一个训练样本，中心词是$w$,它周围上下文共有$2c$个词，记为$context(w)$。由于这个中心词$w$，的确和$context(w)$相关存在，因此它是一个真实的正例。通过Negative Sampling采样，我们得到$neg$个和$w$不同的中心词$w_i,i=1,2,..neg$，这样$context(w)$和$w_i$就组成了$neg$个并不真实存在的负例。利用这一个正例和$neg$个负例，我们进行二元逻辑回归，得到负采样对应每个词$w_i$对应的模型参数$\theta_i$，和每个词的词向量。
+
+从上面的描述可以看出，Negative Sampling由于没有采用霍夫曼树，每次只是通过采样neg个不同的中心词做负例，就可以训练模型，因此整个过程要比Hierarchical Softmax简单。
+
+**负采样的过程**：负采样算法实际上就是一个**带权采样**过程，负例的选择机制是和单词词频联系起来的。
+
+详细的数学原理（梯度计算，Cbow，skip-Gram模型的流程）可以参考：[word2vec 中的数学原理详解]([https://github.com/renpengcheng-github/nlp/blob/master/3.word2vec/word2vec_%E4%B8%AD%E7%9A%84%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3.pdf](https://github.com/renpengcheng-github/nlp/blob/master/3.word2vec/word2vec_%E4%B8%AD%E7%9A%84%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3.pdf))
+
+
+
+### Glove
+
+GloVe的全称叫Global Vectors for Word Representation，它是一个基于**全局词频统计**（count-based & overall statistics）的词表征（word representation）工具。
+
+
+
+#### 构建过程
+
+Glove的**构建过程**如下：
+
+* 根据语料库（corpus）构建一个共现矩阵（Co-ocurrence Matrix）$X$，**矩阵中的每一个元素$X_{ij}$代表单词$i$和上下文单词$j$在特定大小的上下文窗口（context window）内共同出现的次数。**一般而言，这个次数的最小单位是1，但是GloVe不这么认为：它根据两个单词在上下文窗口的距离$d$，提出了一个衰减函数（decreasing weighting）：$decay=1/d$用于计算权重，也就是说**距离越远的两个单词所占总计数（total count）的权重越小**。
+* 构建词向量（Word Vector）和共现矩阵（Co-ocurrence Matrix）之间的近似关系，论文的作者提出以下的公式可以近似地表达两者之间的关系：
+
+
+$$
+
+w_{i}^{T}\tilde{w_{j}} + b_i + \tilde{b_j} = \log(X_{ij}) \tag{1}
+
+$$
+
+
+​	其中，$w_i^T$和$\tilde{w_{j}}$是我们最终要求解的词向量；$b_i$和$\tilde{b_j}$分别是两个词向量的bias term。关于这个公式	  是怎么来的，可以参考[原论文](https://www.aclweb.org/anthology/D14-1162)或者是[GloVe详解](http://www.fanyeong.com/2018/02/19/glove-in-detail/#comment-1462)。
+
+* 根据公式1构造损失函数：
+  
+$$
+
+  J = \sum_{i,j=1}^{V} f(X_{ij})(w_{i}^{T}\tilde{w_{j}} + b_i + \tilde{b_j} – \log(X_{ij}) )^2 \tag{2}
+  
+$$
+
+  这个loss function的基本形式就是最简单的mean square loss，只不过在此基础上加了一个权重函数 $f(X_{ij})$：
+  
+$$
+
+  f(x)=\begin{equation} 
+  \begin{cases} 
+  (x/x_{max})^{\alpha}  & \text{if} \ x < x_{max} \\ 
+  1 & \text{otherwise} 
+  \end{cases} 
+  \end{equation} \tag{3}
+  
+$$
+
+
+
+
+
+​      它的图像如下所示：
+
+![](/img/blog_imgs/glove_fx.png)
+
+
+
+#### 训练过程
+
+1. 实质上还是监督学习：虽然glove不需要人工标注为无监督学习，但实质还是有label就是 $log(X_{ij})$ 。
+2. 向量 $w$ 和 $\tilde{w}$为学习参数，本质上与监督学习的训练方法一样，采用了AdaGrad的梯度下降算法，对矩阵 $X$ 中的所有非零元素进行随机采样，学习曲率（learning rate）设为0.05，在vector size小于300的情况下迭代了50次，其他大小的vectors上迭代了100次，直至收敛。
+3. 最终学习得到的是两个词向量是 $\tilde{w}$ 和 $w $ ，因为 $X$ 是对称的（symmetric），所以从原理上讲$\tilde{w}$ 和 $w $ ，是也是对称的，他们唯一的区别是初始化的值不一样，而导致最终的值不一样。所以这两者其实是等价的，都可以当成最终的结果来使用。但是为了提高鲁棒性，我们最终会选择两者之和 $w+\tilde{w}$ 作为最终的vector（两者的初始化不同相当于加了不同的随机噪声，所以能提高鲁棒性）。
+
+
+
+
+
+### fasttext
+
+fastText是Facebook于2016年开源的一个词向量计算和文本分类工具，在学术上并没有太大创新。但是它的优点也非常明显，在文本分类任务中，fastText（浅层网络）往往能取得和深度网络相媲美的精度，却在训练时间上比深度网络快许多数量级。
+
+一般情况下，使用fastText进行文本分类的同时也会产生词的embedding，即embedding是fastText分类的产物。
+
+#### 字符级别的n-gram
+
+word2vec把语料库中的每个单词当成原子的，它会为每个单词生成一个向量。这忽略了单词内部的形态特征，比如：“apple” 和“apples”，“达观数据”和“达观”，这两个例子中，两个单词都有较多公共字符，即它们的内部形态类似，但是在传统的word2vec中，这种单词内部形态信息因为它们被转换成不同的id丢失了。
+
+为了克服这个问题，fastText使用了字符级别的n-grams来表示一个单词。对于单词“apple”，假设n的取值为3，则它的trigram有“<ap”, “app”, “ppl”, “ple”, “le>”，其中，<表示前缀，>表示后缀。于是，我们可以用这些trigram来表示“apple”这个单词，进一步，我们可以用这5个trigram的向量叠加来示“apple”的词向量。
+
+这带来两点**好处**：
+
+* 对于低频词生成的词向量效果会更好。因为它们的n-gram可以和其它词共享。
+* 对于训练词库之外的单词，仍然可以构建它们的词向量。我们可以叠加它们的字符级n-gram向量。
+
+
+
+#### 模型架构
+
+fastText模型架构和word2vec的CBOW模型架构非常相似。下面是fastText模型架构图：
+
+![](/img/blog_imgs/fasttext_model.png)
+
+
+
+此架构图没有展示词向量的训练过程。可以看到，和CBOW一样，fastText模型也只有三层：输入层、隐含层、输出层（Hierarchical Softmax），输入都是多个经向量表示的单词，输出都是一个特定target，隐含层都是对多个词向量的叠加平均。**不同的是**，CBOW的输入是目标单词的上下文，fastText的输入是多个单词及其n-gram特征，这些特征用来表示单个文档；CBOW的输入单词被onehot编码过，fastText的输入特征是被embedding过；CBOW的输出是目标词汇，fastText的输出是文档对应的类标。
+
+值得注意的是，fastText**在输入时**，将单词的字**符级别的n-gram向量**作为额外的特征；**在输出时**，fastText采用了**分层Softmax**，大大降低了模型训练时间。这两个知识点在前文中已经讲过，这里不再赘述。fastText相关公式的推导和CBOW非常类似，这里也不展开了。
+
+
+
+
+
+### Elmo、GPT、Bert
+
+word embedding有一个**重要的缺陷**，就是它无法区分多义词的不同语义。**为什么呢？**举个例子，对于多义词Bank，有两个常用含义，但是Word Embedding在对bank这个单词进行编码的时候，是区分不开这两个含义的，因为它们尽管上下文环境中出现的单词不同，但是在进行训练的时候，不论什么上下文的句子经过word2vec，都是预测相同的单词bank，而同一个单词占的是同一行的参数空间，这导致两种不同的上下文信息都会编码到相同的word embedding空间里去。
+
+ELMO为这个问题提供了一种解决方案。
+
+
+
+#### ELMO（Embedding from Language Models）
+
+ELMO是如何解决多义词的问题的呢？它是通过**引入上下文动态调整单词的embedding**来解决这个问题的。具体的说，之前的Word Embedding本质上是个**静态**的方式，所谓静态指的是训练好之后每个单词的表达就固定住了，以后使用的时候，不论新句子上下文单词是什么，这个单词的Word Embedding不会跟着上下文场景的变化而改变，所以对于比如Bank这个词，它事先学好的Word Embedding中混合了几种语义 ，在应用中来了个新句子，即使从上下文中（比如句子包含money等词）明显可以看出它代表的是“银行”的含义，但是对应的Word Embedding内容也不会变，它还是混合了多种语义。这是为何说它是静态的，这也是问题所在。**ELMO的本质思想**是：我事先用语言模型学好一个单词的Word Embedding，此时多义词无法区分，不过这没关系。在我实际使用Word Embedding的时候，单词已经具备了特定的上下文了，这个时候我可以根据上下文单词的语义去调整单词的Word Embedding表示，这样经过调整后的Word Embedding更能表达在这个上下文中的具体含义，自然也就解决了多义词的问题了。所以ELMO本身是个根据当前上下文对Word Embedding动态调整的思路。
+
+
+
+
+
+ELMO采用了典型的两阶段过程，第一个阶段是利用语言模型进行预训练；第二个阶段是在做下游任务时，从预训练网络中提取对应单词的网络各层的Word Embedding作为新特征补充到下游任务中。
+
+下面对这两个阶段详细展开。
+
+
+
+##### 预训练过程
+
+ELMO模型的**预训练过程**如下所示：
+
+![](/img/blog_imgs/elmo_model.png)
+
+
+
+它的网络结构采用了双层双向LSTM，训练目标是根据单词 $W_i$ 的上下文去正确预测单词 $W_i$ ，我们将 $W_i$ 之前的单词序列Context-before称为上文，之后的单词序列Context-after称为下文。图中左端的前向双层LSTM代表正方向编码器，输入的是从左到右顺序的除了预测单词外 $W_i$ 的上文Context-before；右端的逆向双层LSTM代表反方向编码器，输入的是从右到左的逆序的句子下文Context-after；每个编码器的深度都是两层LSTM叠加。
+
+使用这个网络结构利用大量语料做语言模型任务就能预先训练好这个网络，如果训练好这个网络后，输入一个新句子 $S_{new}$ ，句子中每个单词都能得到对应的三个Embedding:
+
+* 最底层是单词的**Word Embedding**，
+
+* 往上走是第一层双向LSTM中对应单词位置的Embedding，这层编码单词的**句法信息**更多一些；
+
+* 再往上走是第二层LSTM中对应单词位置的Embedding，这层编码单词的**语义信息**更多一些。
+
+  ​
+
+  也就是说，ELMO的预训练过程不仅仅学会单词的Word Embedding，还学会了一个双层双向的LSTM网络结构，而这两者后面都有用。
+
+
+
+##### 下游任务的使用过程
+
+假设我们的下游任务是QA问题，此时对于问句X，我们可以先将句子X作为预训练好的ELMO网络的输入，这样句子X中每个单词在ELMO网络中都能获得对应的三个Embedding，之后给予这三个Embedding中的每一个Embedding一个权重$\alpha$，这个权重可以学习得来，根据各自权重累加求和，**将三个Embedding整合成一个**。然后将整合后的这个Embedding作为X句在自己任务的那个网络结构中对应单词的输入，以此作为补充的新特征给下游任务使用。对于QA中的回答句子Y来说也是如此处理。因为ELMO给下游提供的是每个单词的特征形式，所以这一类预训练的方法被称为“Feature-based Pre-Training”。。
+
+为什么可以ELMO可以实现动态调整单词的embedding呢？这是因为双层的层LSTM编码了很多句法信息
+
+以及语义信息。
+
+
+
+当然ELMO也是存在缺点的：
+
+* LSTM抽取特征能力远弱于Transformer
+* ELMO采取双向拼接这种融合特征的能力可能比Bert一体化的融合特征方式弱
+
+
+
+#### GPT(Generative Pre-Training)
+
+GPT也采用两阶段过程，第一个阶段是利用语言模型进行预训练，第二阶段通过Fine-tuning的模式解决下游任务。
+
+
+
+##### 预训练过程
+
+下图展示了GPT的预训练过程：
+
+![](/img/blog_imgs/gpt_model.png)
+
+GPT和ELMO的不同点在于：
+
+* 特征抽取器不是用的RNN，而是用的Transformer
+* ELMO在做语言模型预训练的时候，预测单词 $W_i$ 同时使用了上文和下文，而GPT则只采用Context-before这个单词的上文来进行预测，而抛开了下文。从这方面看，GPT没有把单词的下文融合进来，这实际上限制了其在更多应用场景的效果
+
+
+
+>  **Transformer**是个叠加的“自注意力机制（Self Attention）”构成的深度网络，相比其CNN以及RNN，Transformer同时具备并行性好，又适合捕获长距离特征。这两个特点让它
+>
+>  是目前NLP里最强的特征提取器。学习Transformer可以参考以下两篇博客：
+>
+>  [The Illustrated Transformer](https://link.zhihu.com/?target=https%3A//jalammar.github.io/illustrated-transformer/)
+>
+>  [The Annotated Transformer](https://link.zhihu.com/?target=http%3A//nlp.seas.harvard.edu/2018/04/03/attention.html)
+
+
+
+##### 应用到下游任务
+
+对于不同的下游任务来说，为了使用GPT，可以分为
+
+将GPT应用到下游任务可以分为以下几步：
+
+* 把任务的网络结构改造成和GPT的网络结构一样
+* 利用第一步预训练好的参数初始化GPT的网络结构，这样通过预训练学到的语言学知识就被引入到你手头的任务里来了
+* 利用手头的任务去训练这个网络，对网络参数进行Fine-tuning，使得这个网络更适合解决手头的问题
+
+这个过程实际上和图像领域如何做预训练的过程是一致的。
+
+下面是GPT论文中针对不同的下游任务的改造方法：
+
+![](/img/blog_imgs/gpt_methods.png)
+
+
+
+#### Bert(Bidirectional Encoder Representations from Transformers)
+
+##### Bert的两个阶段
+
+Bert采用和GPT完全相同的两阶段模型，首先是语言模型预训练；其次是使用Fine-Tuning模式解决下游任务。和GPT的最主要不同在于在预训练阶段采用了类似ELMO的双向语言模型，当然另外一点是语言模型的数据规模要比GPT大。所以这里Bert的预训练过程不必多讲了。
+
+第二阶段，Fine-Tuning阶段，这个阶段的做法和GPT是一样的。当然，它也面临着下游任务网络结构改造的问题，在改造任务方面Bert和GPT有些不同，下面简单介绍一下。
+
+下面是如何改造输入输出部分使得大部分NLP任务都可以使用Bert预训练好的模型参数的示意：
+
+![](/img/blog_imgs/bert_methods.png)
+
+* 对于句子关系类任务，很简单，和GPT类似，加上一个起始和终结符号，句子之间加个分隔符即可。对于输出来说，把第一个起始符号对应的Transformer最后一层位置上面串接一个softmax分类层即可。
+* 对于分类问题，与GPT一样，只需要增加起始和终结符号，输出部分和句子关系判断任务类似改造；
+* 对于序列标注问题，输入部分和单句分类是一样的，只需要输出部分Transformer最后一层每个单词对应位置都进行分类即可。
+* 对于机器翻译或者文本摘要，聊天机器人这种生成式任务，同样可以稍作改造即可引入Bert的预训练成果。只需要附着在S2S结构上，encoder部分是个深度Transformer结构，decoder部分也是个深度Transformer结构。根据任务选择不同的预训练数据初始化encoder和decoder即可。
+
+
+
+##### Bert、ELMO以及GPT的比较
+
+![](/img/blog_imgs/bert_compare.png)
+
+之前介绍词向量均是静态的词向量，无法解决一次多义等问题。而elmo、GPT、bert词向量，它们都是基于语言模型的动态词向量。下面从几个方面对这三者进行对比：
+
+（1）**特征提取器**：elmo采用LSTM进行提取，GPT和bert则采用Transformer进行提取。很多任务表明Transformer特征提取能力强于LSTM，elmo采用1层静态向量+2层LSTM，多层提取能力有限，而GPT和bert中的Transformer可采用多层，并行计算能力强。
+
+（2）**单/双向语言模型**：
+
+- GPT采用单向语言模型，elmo和bert采用双向语言模型。但是elmo实际上是两个单向语言模型（方向相反）的拼接，这种融合特征的能力比bert一体化融合特征方式弱。
+- GPT和bert都采用Transformer，Transformer是encoder-decoder结构，GPT的单向语言模型采用decoder部分，decoder的部分见到的都是不完整的句子；bert的双向语言模型则采用encoder部分，采用了完整句子。
+
+
+
+##### Bert本身在模型和方法角度的创新
+
+* **Masked双向语言模型**，本质思想是CBOW，具体的做法是：随机选择语料中15%的单词，把它抠掉，也就是用[Mask]掩码代替原始单词，然后要求模型去正确预测被抠掉的单词。但是因为真正使用的时候是不会有mask标记的，这自然会有问题，因此，在Bert训练中，15%的要执行[mask]这项任务的单词中，只有80%真正被替换成[mask]标记，10%被随机替换成另外一个单词，10%不做改动。这就是Masked双向语音模型的具体做法。
+* **Next Sentence Prediction**，指的是做语言模型预训练的时候，分两种情况选择两个句子，一种是选择语料中真正顺序相连的两个句子；另外一种是第二个句子从语料库中随机选择一个拼到第一个句子后面。我们要求模型除了做上述的Masked语言模型任务外，附带再做个句子关系预测，判断第二个句子是不是真的是第一个句子的后续句子。之所以这么做，**是考虑到**很多NLP任务是句子关系判断任务，单词预测粒度的训练到不了句子关系这个层级，增加这个任务**有助于下游句子关系判断任务**。所以可以看到，它的预训练是个多任务过程。这也是Bert的一个创新。
+
+
+
+##### Bert的输入部分
+
+它的输入部分是个线性序列，两个句子通过分隔符分割，最前面和最后增加两个标识符号。每个单词有三个embedding:**位置信息embedding**，这是因为NLP中单词顺序是很重要的特征，需要在这里对位置信息进行编码；**单词embedding**,这个就是我们之前一直提到的单词embedding；第三个是**句子embedding**，因为前面提到训练数据都是由两个句子构成的，那么每个句子有个句子整体的embedding项对应给每个单词。把单词对应的三个embedding叠加，就形成了Bert的输入。如下图所示：
+
+![](/img/blog_imgs/bert_input.png)
+
+
+
+
+
+##### Bert的评价及意义
+
+* Bert是NLP里里程碑式的工作，对于后面NLP的研究和工业应用会产生长久的影响。
+* 从模型或者方法角度看，Bert借鉴了ELMO，GPT及CBOW，主要提出了Masked 语言模型及Next Sentence Prediction，但是这里Next Sentence Prediction基本不影响大局，而Masked LM明显借鉴了CBOW的思想。所以说Bert的模型没什么大的创新，更像最近几年NLP重要进展的集大成者。
+
+
+
+
+
+##  常见问题
+
+
+
+### 几种常见的文本表示模型各有什么优缺点？
+
+用一张表格作为总结以上几种方法的优缺点：
+
+|                             | 优点                                     | 缺点                                    |
+| --------------------------- | -------------------------------------- | ------------------------------------- |
+| 词袋模型                        | 简单，计算量小                                | 忽视了词的上下文，稀疏性                          |
+| N-gram模型                    | 包含了前N-1个词所能提供的全部信息，这些词对于当前词的出现具有很强的约束力 | 需要相当规模的训练文本来确定模型的参数，还有因数据稀疏而导致的数据平滑问题 |
+| 主题模型                        | -                                      | 能够将具有相同主题的词映射到同一维度上去                  |
+| NNLM/RNNLM                  | -                                      | 词向量为副产物，效率不高                          |
+| 固定表征的词嵌入模型：word2vec/glove   | 能够学习到高质量的词表示                           | 需要相当规模的训练文本来确定模型的参数，无法解决多义词问题         |
+| 基于语言模型的动态表征方法：ELMO/GPT/Bert | 能够学习到高质量的词表示，能够解决多义词问题                 | 模型很大，训练成本太高。                          |
+
+
+
+### word2vec和NNLM对比有什么区别？
+
+1）其本质都可以看作是语言模型；
+
+2）词向量只不过NNLM一个产物，word2vec虽然其本质也是语言模型，但是其专注于词向量本身，因此做了许多优化来提高计算效率：
+
+- 与NNLM相比，词向量直接sum，不再拼接，并舍弃隐层；
+- 考虑到sofmax归一化需要遍历整个词汇表，采用hierarchical softmax 和negative sampling进行优化，hierarchical softmax 实质上生成一颗带权路径最小的哈夫曼树，让高频词搜索路劲变小；negative sampling更为直接，实质上对每一个样本中每一个词都进行负例采样；
+
+
+
+### word2vec和fastText对比有什么区别？
+
+1）都可以无监督学习词向量， fastText训练词向量时会考虑subword；
+
+2） fastText还可以进行有监督学习进行文本分类，其主要特点：
+
+- 结构与CBOW类似，但学习目标是人工标注的分类结果；
+- 采用hierarchical softmax对输出的分类标签建立哈夫曼树，样本中标签多的类别被分配短的搜寻路径；
+- 引入N-gram，考虑词序特征；
+- 引入subword来处理长词，处理未登陆词问题；
+
+
+
+### glove和word2vec、 LSA对比有什么区别？
+
+1）**glove vs LSA**
+
+- LSA（Latent Semantic Analysis）可以基于co-occurance matrix构建词向量，实质上是基于全局语料采用SVD进行矩阵分解，然而SVD计算复杂度高；
+- glove可看作是对LSA一种优化的高效矩阵分解算法，采用Adagrad对最小平方损失进行优化；
+
+2）**word2vec vs glove**
+
+- word2vec是**局部语料库**训练的，其特征提取是基于滑窗的；而glove的滑窗是为了构建co-occurance matrix，是基于全局语料的，可见glove需要事先统计共现概率；因此，word2vec可以进行在线学习，glove则需要统计固定语料信息。
+- word2vec是无监督学习，同样由于不需要人工标注；glove通常被认为是无监督学习，但实际上glove还是有label的，即共现次数$log(X_{ij})$。
+- word2vec损失函数实质上是带权重的交叉熵，权重固定；glove的损失函数是最小平方损失函数，权重可以做映射变换。
+- 总体来看，**glove可以被看作是更换了目标函数和权重函数的全局word2vec**。
+
+
+
+## 参考
+
+[nlp中的词向量对比：word2vec/glove/fastText/elmo/GPT/bert]( https://zhuanlan.zhihu.com/p/56382372)
+
+[word2vec原理(一) CBOW与Skip-Gram模型基础](https://www.cnblogs.com/pinard/p/7160330.html)
+
+[word2vec原理(二) 基于Hierarchical Softmax的模型](https://www.cnblogs.com/pinard/p/7243513.html)
+
+[word2vec源码](https://github.com/tmikolov/word2vec/blob/master/word2vec.c)
+
+[word2vec 中的数学原理详解]([https://github.com/renpengcheng-github/nlp/blob/master/3.word2vec/word2vec_%E4%B8%AD%E7%9A%84%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3.pdf](https://github.com/renpengcheng-github/nlp/blob/master/3.word2vec/word2vec_%E4%B8%AD%E7%9A%84%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3.pdf))
+
+[GloVe: Global Vectors for Word Representation](https://www.aclweb.org/anthology/D14-1162)
+
+[GloVe详解](http://www.fanyeong.com/2018/02/19/glove-in-detail/#comment-1462)
+
+
+
+
+

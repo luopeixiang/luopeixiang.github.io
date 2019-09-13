@@ -2,12 +2,10 @@
 layout:     post
 title:      "python实现简易模板引擎"
 subtitle:   ""
-date:       2017-3-15
+date:       2016-12-15
 author:     "MaggicQ"
 tags:
     - python
-    - 模板引擎
-    - 面向对象编程 
 ---
 
 # python实现简易模板引擎
@@ -68,6 +66,11 @@ def make_page(username, products):
     html = PAGE_HTML.format(name=username, products=product_html)
     return html
 ```
+
+
+
+
+
 
 这是可行的，但这样的方法很容易造成混乱，尤其是当网页很大结构复杂时，维护困难。
 

@@ -6,9 +6,7 @@ date:       2016-06-23
 author:     "MaggicQ"
 header-img: "img/linuxcommand.jpg"
 tags:
-    - Unix
     - Linux
-    - 常用命令
 ---
 
 >在早期的linux系统下，是没有图形界面的，随着linux的发展，在它的一些发行版比如Ubuntu，Nerrunner才加入了桌面环境。但是，我们使用Linux时，应该尽量避免使用桌面环境，因为Linux下有很方便的命令，如果善于使用，可以极大的提高我们的工作效率

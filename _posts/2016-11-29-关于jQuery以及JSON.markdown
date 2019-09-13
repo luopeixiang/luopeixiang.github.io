@@ -5,10 +5,7 @@ subtitle:   ""
 date:       2016-11-29
 author:     "MaggicQ"
 tags:
-    - jQuery
-    - json与xml
-    - 前端
-    - 小结
+    - 其他
 
 ---
 

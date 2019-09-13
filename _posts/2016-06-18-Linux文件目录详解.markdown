@@ -6,9 +6,7 @@ date:       2016-06-17
 author:     "MaggicQ"
 header-img: "img/post-bg-unix-linux.jpg"
 tags:
-    - Unix
     - Linux
-    - 文件目录
 ---
 
 >Unix的哲学：  

@@ -6,9 +6,7 @@ date:       2016-07-18
 author:     "MaggicQ"
 header-img: "img/cloud.jpg"
 tags:
-    - 科普
-    - 云计算
-    - 展望
+    - 其他
 ---
 
 

@@ -5,10 +5,7 @@ subtitle:   ""
 date:       2016-11-25
 author:     "MaggicQ"
 tags:
-    - AJAX
-    - JavaScript
-    - 前端
-    - 小结
+    - 其他
 ---
 
 ## AJAX

@@ -5,9 +5,7 @@ subtitle:   ""
 date:       2016-10-7
 author:     "MaggicQ"
 tags:
-    - Unix
     - Linux
-    - 网络
 ---
 
 

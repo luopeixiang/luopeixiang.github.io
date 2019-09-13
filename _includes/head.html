@@ -44,11 +44,16 @@
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}">
 
     <!-- Bootstrap Core CSS -->
-    <link rel="stylesheet" href="{{ "/css/bootstrap.min.css" | prepend: site.baseurl }}">
+    <link rel="stylesheet" href="{{ "/css/bootstrap.css" | prepend: site.baseurl }}">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ "/css/hux-blog.min.css" | prepend: site.baseurl }}">
-    <link rel="stylesheet" href="{{ "/css/code_highlight_rouge.css" | prepend: site.baseurl }}">
+    <!-- <link rel="stylesheet" href="{{ "/css/hux-blog.min.css" | prepend: site.baseurl }}"> -->
+    <link rel="stylesheet" href="{{ "/css/hux-blog.css" | prepend: site.baseurl }}">
+    <!-- <link rel="stylesheet" href="{{ "/css/code_highlight_rouge.css" | prepend: site.baseurl }}"> -->
+    <!-- 代码高亮如有需要在这里修改css即可 各种style demo可以参见highlight官网 -->
+    <link rel="stylesheet" href="/css/highlight/styles/github.css">
+    <script src="/css/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
 
     <!-- Custom Fonts -->
     <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->

@@ -6,7 +6,6 @@ date:       2016-10-11
 author:     "MaggicQ"
 tags:
     - Linux
-    - C语言
 ---
 
 [TOC]

@@ -6,8 +6,7 @@ date:       2016-07-28
 author:     "MaggicQ"
 header-img: "img/notebook.jpg"
 tags:
-    - 学习笔记
-    - 经济学与生活
+    - 其他
 ---
 
 

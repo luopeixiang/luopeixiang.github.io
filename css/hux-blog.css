@@ -642,11 +642,15 @@ table.table > tbody td,
 table.table > thead td {
   border: 1px solid #eee;
 }
+
 hr.small {
   max-width: 100px;
   margin: 15px auto;
   border-width: 4px;
   border-color: white;
+}
+pre {
+  padding: 0px;
 }
 pre,
 .table-responsive {

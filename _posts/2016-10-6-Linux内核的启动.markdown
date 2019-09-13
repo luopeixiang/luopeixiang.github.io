@@ -6,7 +6,6 @@ date:       2016-10-6
 author:     "MaggicQ"
 tags:
     - Linux
-    - 启动过程
 ---
 
 
