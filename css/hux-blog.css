@@ -656,18 +656,18 @@ pre,
 .table-responsive {
   -webkit-overflow-scrolling: touch;
 }
-pre code {
+/* pre code {
   display: block;
   width: auto;
   white-space: pre;
   word-wrap: normal;
-}
-code,
+} */
+/* code,
 kbd,
 pre,
 samp {
   font-family: "Fira Code", Menlo, Monaco, Consolas, "Courier New", monospace;
-}
+} */
 .postlist-container {
   margin-bottom: 15px;
 }
