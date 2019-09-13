@@ -92,7 +92,7 @@ ba_track_id: 'c7bbed63f57e32201e31d09dfd775fde'
 sidebar: true                           # whether or not using Sidebar.
 # sidebar-about-description: "For the next quantum leap<br>离开世界之前，一切都是过程"
 sidebar-about-description: "但行好事，莫问前程。"
-sidebar-avatar: /img/luopeixiang.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /img/luopeixiang2.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
