@@ -304,7 +304,7 @@ button.paper-button {
   margin: 16px;
   border-radius: 2px;
 }
-.highlight,
+/* .highlight,
 pre.highlight {
   background: #282c34;
   color: #abb2bf;
@@ -517,7 +517,7 @@ pre.highlight {
   margin: 0;
   padding: 0;
   word-wrap: normal;
-}
+} */
 .highlighter-rouge .highlight .rouge-code pre {
   color: #abb2bf;
 }
@@ -648,9 +648,6 @@ hr.small {
   margin: 15px auto;
   border-width: 4px;
   border-color: white;
-}
-pre {
-  padding: 0px;
 }
 pre,
 .table-responsive {
