@@ -1,0 +1,567 @@
+---
+layout:     post
+title:      "Leetcode题解-二分查找"
+subtitle:   ""
+date:       2017-11-29
+author:     "MaggicQ"
+header-img: "img/post-bg-kuaidi.jpg"
+tags:
+    - Leetcode题解
+---
+
+**本文目录**
+* TOC
+{:toc}
+
+
+## 定义
+
+**二分查找算法**（英语：binary search algorithm），也称折半搜索算法，是一种在有序数组中查找某一特定元素的搜索算法。搜索过程从数组的中间元素开始，如果中间元素正好是要查找的元素，则搜索过程结束；如果某一特定元素大于或者小于中间元素，则在数组大于或小于中间元素的那一半中查找，而且跟开始一样从中间元素开始比较。如果在某一步骤数组为空，则代表找不到。这种搜索算法每一次比较都使搜索范围缩小一半。
+
+
+
+## 常见题目
+
+### 二分查找
+
+[二分查找-题目描述](https://leetcode-cn.com/problems/binary-search/description/)
+
+```python
+class Solution:
+    def search(self, nums: List[int], target: int) -> int:
+        left, right = 0, len(nums)-1
+        while left <= right:
+            mid = (left+right)//2
+            if nums[mid] == target:
+                return mid
+            elif nums[mid] > target:
+                right = mid - 1
+            else:
+                left = mid+1
+        return -1
+```
+
+
+
+### X的平方根
+
+[x 的平方根-题目描述](https://leetcode-cn.com/problems/sqrtx/description/)
+
+```python
+class Solution:
+    def mySqrt(self, x: int) -> int:
+        l, r = 0, x
+        while l <= r:
+            mid = l + (r-l)//2
+            if mid * mid <= x < (mid+1)*(mid+1):
+                return mid
+            elif x < mid * mid:
+                r = mid
+            else:
+                l = mid + 1
+```
+
+### 搜索旋转排序数组
+
+[搜索旋转排序数组-题目描述](https://leetcode-cn.com/problems/search-in-rotated-sorted-array/description/)
+
+```python
+class Solution:
+    def search(self, nums: List[int], target: int) -> int:
+        def get(start, end):
+            if start > end:
+                return -1
+            mid = (start + end) // 2
+            if nums[mid] == target:
+                return mid
+            elif nums[mid] >= nums[start]:   # 左边是排好序的
+                if target >= nums[start] and target < nums[mid]:
+                    return get(start, mid-1)
+                else:
+                    return get(mid+1, end)
+            elif nums[mid] <= nums[end]:    # 右边是排好序的
+                if target > nums[mid] and target <= nums[end]:
+                    return get(mid+1, end)
+                else:
+                    return get(start, mid-1)
+        return get(0, len(nums)-1)
+```
+
+
+
+### 第一个错误的版本
+
+[第一个错误的版本-题目描述](https://leetcode-cn.com/problems/first-bad-version/description/)
+
+```python
+class Solution:
+    def firstBadVersion(self, n):
+        """
+        :type n: int
+        :rtype: int
+        """
+        left, right = 1, n
+        mid = (left+right) // 2
+        while True:
+            if isBadVersion(mid):
+                if not isBadVersion(mid-1):
+                    return mid
+                else:
+                    right = mid - 1
+            else:
+                left = mid + 1
+            mid = (left+right) // 2
+
+```
+
+
+
+### 寻找峰值
+
+[寻找峰值-描述](https://leetcode-cn.com/problems/find-peak-element/description/)
+
+```python
+class Solution:
+    def findPeakElement(self, nums: List[int]) -> int:
+        left, right = 0, len(nums)-1
+        while left < right:
+            mid = (left+right)//2
+            if nums[mid] > nums[mid+1]:
+                right = mid
+            else:
+                left = mid+1
+        return left
+```
+
+
+
+### 寻找旋转排序数组中的最小值
+
+[寻找旋转排序数组中的最小值-题目描述](https://leetcode-cn.com/problems/find-minimum-in-rotated-sorted-array/description/)
+
+```python
+class Solution:
+    def findMin(self, nums: List[int]) -> int:
+		# 递归写法
+        if len(nums) <= 2:
+            return min(nums)
+
+        left, right = 0, len(nums)-1
+        mid = (left+right) // 2
+        if nums[mid] > nums[left]:  # 左边是排序好的状态
+            min_num = min(nums[left], self.findMin(nums[mid+1:]))
+        else: # 右边是排序好的状态
+            min_num = min(nums[mid], self.findMin(nums[:mid]))
+
+        return min_num
+```
+
+迭代写法：
+
+```python
+class Solution:
+    def findMin(self, nums: List[int]) -> int:
+        left, right = 0, len(nums) - 1
+        while left < right:
+            mid = (left + right) // 2
+            if nums[mid] > nums[right]:
+                left = mid + 1
+            else:
+                right = mid
+        return nums[left]
+```
+
+
+
+### 寻找旋转排序数组中的最小值 II
+
+[寻找旋转排序数组中的最小值 II-题目描述](https://leetcode-cn.com/problems/find-minimum-in-rotated-sorted-array-ii/description/)
+
+```python
+class Solution:
+    def findMin(self, nums: List[int]) -> int:
+        left, right = 0, len(nums) - 1
+        while left < right:
+            mid = (left + right) // 2
+            if nums[mid] > nums[right]:
+                left = mid + 1
+            elif nums[mid] < nums[right]:
+                right = mid
+            else:
+                right = right - 1  # key
+        return nums[left]
+```
+
+
+
+
+
+### Pow(x, n)
+
+[Pow(x, n)-题目描述](https://leetcode-cn.com/problems/powx-n/)
+
+```python
+class Solution:
+    def myPow(self, x: float, n: int) -> float:
+        if n < 0:
+            x = 1/x
+            n = -n
+        res = 1
+        while n > 0:
+            if n & 1:
+                res *= x
+            x *= x
+            n >>= 1
+        return res
+
+        # 递归
+        # if not n:
+        #     return 1
+        # if n < 0:
+        #     return 1 / self.myPow(x, -n)
+        # if n % 2 == 1:
+        #     return x * self.myPow(x, n-1)
+        # return self.myPow(x*x, n/2)
+```
+
+### 有效的完全平方数
+
+[有效的完全平方数-题目描述](https://leetcode-cn.com/problems/valid-perfect-square/description/)
+
+```python
+class Solution:
+    def isPerfectSquare(self, num: int) -> bool:
+        left, right = 0, num
+        mid = (left + right) // 2
+        while left <= right:
+            if mid**2 > num:
+                right = mid - 1
+            elif mid**2 < num:
+                left = mid + 1
+            else:
+                return True
+            mid = (left + right) // 2
+        return False
+```
+
+
+
+### 寻找比目标字母大的最小字母
+
+[寻找比目标字母大的最小字母](https://leetcode-cn.com/problems/find-smallest-letter-greater-than-target/description/)
+
+```python
+class Solution:
+    def nextGreatestLetter(self, letters: List[str], target: str) -> str:
+        left, right = 0, len(letters)
+        while left < right:
+            mid = (left+right)//2
+            if letters[mid] > target and letters[mid-1] <= target:
+                return letters[mid]
+            elif letters[mid] <= target:
+                left = mid + 1
+            else:
+                right = mid
+
+        if right == len(letters):
+            return letters[0]
+        return letters[right]
+```
+
+
+
+### 两数之和 II - 输入有序数组
+
+[两数之和 II - 输入有序数组-题目描述](https://leetcode-cn.com/problems/two-sum-ii-input-array-is-sorted/description/)
+
+给定一个已按照**升序排列** 的有序数组，找到两个数使得它们相加之和等于目标数。
+
+```python
+class Solution:
+    def twoSum(self, numbers: List[int], target: int) -> List[int]:
+        # 双指针
+        # l, r = 0, len(numbers)-1
+        # while l < r:
+        #     s = numbers[l] + numbers[r]
+        #     if s == target:
+        #         return [l+1, r+1]
+        #     elif s < target:
+        #         l += 1
+        #     else:
+        #         r -= 1
+
+        # 二分查找
+        for i in range(len(numbers)):
+            left, right = i+1, len(numbers)-1
+            delta = target - numbers[i]
+            while left <= right:
+                mid = (left+right)//2
+                if numbers[mid] > delta:
+                    right = mid - 1
+                elif numbers[mid] < delta:
+                    left = mid+1
+                else:
+                    return [i+1, mid+1]
+```
+
+
+
+### 寻找重复数
+
+[寻找重复数-问题描述](https://leetcode-cn.com/problems/find-the-duplicate-number/solution/xun-zhao-zhong-fu-shu-by-leetcode/)
+
+```python
+class Solution:
+    def findDuplicate(self, nums: List[int]) -> int:
+
+        # 二分查找，O(nlogn)时间复杂度 O(1)空间复杂度
+        low, high = 1, len(nums)-1
+        while low < high:
+            mid = (low+high) // 2
+            count = 0
+            for n in nums:
+                if n <= mid:
+                    count += 1
+
+            if count > mid:
+                high = mid
+            else:
+                low = mid+1
+        return low
+```
+
+或者是使用预排序：
+
+```python
+class Solution:
+    def findDuplicate(self, nums):
+        nums.sort()
+        for i in range(1, len(nums)):
+            if nums[i] == nums[i-1]:
+                return nums[i]
+```
+
+或是使用集合：
+
+```python
+class Solution:
+    def findDuplicate(self, nums):
+        seen = set()
+        for num in nums:
+            if num in seen:
+                return num
+            seen.add(num)
+```
+
+
+
+### 寻找两个有序数组的中位数
+
+参考：[Share-my-simple-O(log(m+n))-solution-for-your-reference](https://leetcode.com/problems/median-of-two-sorted-arrays/discuss/2499/Share-my-simple-O(log(m%2Bn))
+
+```python
+class Solution:
+    def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:
+        m, n = len(nums1), len(nums2)
+        if (m + n) % 2 == 1:
+            return self.getkth(nums1, nums2, (m+n+1)//2)
+        else:
+            mid1 = self.getkth(nums1, nums2, (m+n+1)//2)
+            mid2 = self.getkth(nums1, nums2, (m+n+2)//2)
+            return (mid1+mid2)/2
+
+    def getkth(self, nums1, nums2, k):
+        """取有序数组nums1与nums2中第k小的元素"""
+        m, n = len(nums1), len(nums2)
+        if m > n:
+            return self.getkth(nums2, nums1, k)
+        if m == 0:
+            return nums2[k-1]
+        if k == 1:
+            return min(nums1[0], nums2[0])
+
+        i = min(m, k//2)
+        j = min(n, k//2)
+        if nums1[i-1] > nums2[j-1]:
+            return self.getkth(nums1, nums2[j:], k-j)
+        else:
+            return self.getkth(nums1[i:], nums2, k-i)
+```
+
+### 找出第 k 小的距离对
+
+[找出第 k 小的距离对-题目描述](https://leetcode-cn.com/problems/find-k-th-smallest-pair-distance/description/)
+
+```python
+class Solution:
+    def smallestDistancePair(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        lo = 0
+        high = nums[-1] - nums[0]
+        while lo <= high:
+            mid = (lo + high) // 2
+            count = 0
+            j = 0
+            for i in range(len(nums)):
+                while j < len(nums) and abs(nums[j] - nums[i]) <= mid:
+                    j += 1
+                count += (j - i - 1)
+            if count < k:
+                lo = mid + 1
+            else:
+                high = mid - 1
+        return lo
+```
+
+
+
+### 分割数组的最大值
+
+[分割数组的最大值-题目描述](https://leetcode-cn.com/problems/split-array-largest-sum/description/)
+
+如果我们找到了一种分割方案，使得最大的分割子数组和不超过 `x`，那么我们也能找到一种分割方案使得最大的分割子数组和不超过 `y`，其中 `y` 大于 `x`。
+
+对于值 x，我们把这个性质定义为 `F(x)`。如果 `F(x)` 为真，那就意味着我们一定可以找到一种分割方案使得最大的分割子数组和不超过 `x`。
+
+我们让 `x` 的区间为 负无穷大 到 无穷大，一旦我们找到一个值 `x0`，使得所有的 x < x0，F(x) 都为假，所有的 `x >= x0`，`F(x)` 都为真。那么显然，这个 `x0` 就是我们要的答案了。
+
+算法
+
+我们可以用二分搜索来找到 `x0`。每次循环，我们让 `mid = (left + right) / 2`，如果 `F(mid)` 为假，那么我们接下来就去搜索 `[mid + 1, right]` 区间；如果 F(mid) 为真，那么我们接下来就去搜索 `[left, mid - 1]` 区间。
+
+对于一个给定的 x，我们可以用贪心算法来计算 `F(x)`。我们用累计和 `sum` 来记录当前子数组的和，同时用 `subs`来记录子数组的数量。我们依次处理数组中的每个元素，对每个元素 num，如果 `sum + num <= x`，这就意味着当前的子数组没有超过限制。否则，就需要从当前元素 num 开始分割出一个新的子数组。
+
+代码如下：
+
+```python
+class Solution:
+    def is_valid(self, nums, m, mid):
+        # assume mid is < max(nums)
+        cuts, curr_sum = 0, 0
+        for x in nums:
+            curr_sum += x
+            if curr_sum > mid:
+                cuts, curr_sum = cuts+1, x
+        subs = cuts + 1
+        return (subs <= m)
+
+    def splitArray(self, nums, m):
+        low, high, ans = max(nums), sum(nums), -1
+        while low <= high:
+            mid = (low+high)//2
+            # can you make at-most m sub-arrays with maximum sum atmost mid
+            if self.is_valid(nums, m, mid):
+                ans, high = mid, mid-1
+            else:
+                low = mid + 1
+        return ans
+```
+
+
+
+
+
+### 搜索二维矩阵
+
+[搜索二维矩阵-题目描述](https://leetcode-cn.com/problems/search-a-2d-matrix/)
+
+```python
+class Solution:
+    def searchMatrix(self, matrix: List[List[int]], target: int) -> bool:
+        m = len(matrix)
+        if m == 0:
+            return False
+        n = len(matrix[0])
+        
+        #二分查找
+        left, right = 0, m * n - 1
+        while left <= right:
+                mid = (left + right) // 2
+                val = matrix[mid // n][mid % n]
+                if target == val:
+                    return True
+                else:
+                    if target < val:
+                        right = mid - 1
+                    else:
+                        left = mid + 1
+        return False
+```
+
+
+
+### 搜索二维矩阵2
+
+[搜索二维矩阵 II-题目描述](https://leetcode-cn.com/problems/search-a-2d-matrix-ii/)
+
+```python
+
+class Solution:
+    def searchMatrix(self, matrix, target):
+        if matrix:
+            row, col, width = len(matrix)-1, 0, len(matrix[0])-1
+            while row >= 0 and col <= width:
+                val = matrix[row][col]
+                if val == target:
+                    return True
+                elif val < target:
+                    col += 1
+                else:
+                    row -= 1
+        return False
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

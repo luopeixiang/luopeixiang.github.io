@@ -9,11 +9,9 @@ tags:
     - 装饰器
 ---
 
-----
 
-本篇文章翻译自  [stackoverflow](http://stackoverflow.com/)
+本篇文章翻译自[stackoverflow中一个关于python装饰器问答下的高票回答](http://stackoverflow.com/questions/739654/how-to-make-a-chain-of-function-decorators-in-python/1594484#1594484)
 
-----
 
 
 
@@ -803,10 +801,3 @@ Python中提供了几个装饰器：`property`, `staticmethod`, 等等。
 * Django 使用装饰器管理缓存和视图权限。
 * Twisted 使用装饰器调用内嵌异步函数
 
-
-
-## 最后的话
-
-
-
-本篇文章来自于[stackoverflow中一个关于python装饰器问答下的高票回答](http://stackoverflow.com/questions/739654/how-to-make-a-chain-of-function-decorators-in-python/1594484#1594484)，因为本人英语水平所限，文章可能有纰漏之处，欢迎指正，同时建议对自己英语自信的同学还是查看原答案吧，毕竟学会用英语获取知识也是一项很优秀的技能哦！

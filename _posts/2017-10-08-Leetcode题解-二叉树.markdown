@@ -1,0 +1,330 @@
+---
+layout:     post
+title:      "Leetcode题解-二叉树"
+subtitle:   ""
+date:       2017-10-08
+author:     "MaggicQ"
+header-img: "img/post-bg-os-metro.jpg"
+tags:
+    - Leetcode题解
+---
+
+**本文目录**
+* TOC
+{:toc}
+
+
+
+
+## 定义
+
+树（Tree）是一种抽象数据类型（ADT）或是实作这种抽象数据类型的数据结构，用来模拟具有树状结构性质的数据集合。它是由`n（n>0）`个有限节点组成一个具有层次关系的集合。把它叫做“树”是因为它看起来像一棵倒挂的树，也就是说它是根朝上，而叶朝下的。
+
+二叉树是一种特殊的树，在二叉树中，每个节点最多只有两个分支。这两个分支通常分支被称作“左子树”或“右子树”。二叉树的分支具有左右次序，不能随意颠倒。
+
+二叉树是最经常考察的数据结构之一。下面给出二叉树的代码定义：
+
+```python
+class TreeNode:
+    def __init__(self, x):
+        self.val = x
+        self.left = None
+        self.right = None
+```
+
+## 常见题型
+
+
+
+### 二叉树的前序遍历
+
+[二叉树的前序遍历-题目描述](https://leetcode-cn.com/problems/binary-tree-preorder-traversal/description/)
+
+```python
+class Solution:
+    def preorderTraversal(self, root: TreeNode) -> List[int]:
+
+        # 递归方法
+        # res = []
+
+        # def traversal(root):
+        #     if not root:
+        #         return
+        #     res.append(root.val) # 先访问根节点
+        #     traversal(root.left) # 然后是左子树
+        #     traversal(root.right) # 最后是右子树
+        # traversal(root)
+        # return res
+
+        # 迭代方法
+        res = []
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            if node:
+                res.append(node.val)
+                # 右子树后访问，所以先入栈
+                stack.append(node.right)
+                stack.append(node.left)
+        return res
+```
+
+注意时间和空间复杂度均为$O(n)$。
+
+
+
+### 二叉树的中序遍历
+
+[二叉树的中序遍历-题目描述](https://leetcode-cn.com/problems/binary-tree-inorder-traversal/description/)
+
+```python
+class Solution:
+    def inorderTraversal(self, root: TreeNode) -> List[int]:
+        # 递归的方法
+        # if not root:
+        #     return []
+        # if root.left is None and root.right is None:
+        #     return [root.val]
+        # return self.inorderTraversal(root.left) + [root.val] + \
+        #     self.inorderTraversal(root.right)
+
+        # 迭代的方法
+        res, stack = [], []
+        while True:
+            while root:  # 一直向左往下查找
+                stack.append(root)
+                root = root.left
+            if not stack:
+                return res
+            node = stack.pop()  # 这个节点没有左子树
+            res.append(node.val)  # 添加值
+            root = node.right  # 从该节点的右子树继续
+```
+
+
+
+### 二叉树的后序遍历
+
+[二叉树的后序遍历-题目描述](https://leetcode-cn.com/problems/binary-tree-postorder-traversal/description/)
+
+```python
+class Solution:
+    def postorderTraversal(self, root: TreeNode) -> List[int]:
+        # 迭代 注意和先序遍历的方法作比较
+        res, stack = [], [root]
+        while stack:
+            node = stack.pop()
+            if node:
+                res.append(node.val)
+                stack.append(node.left)
+                stack.append(node.right)
+        return res[::-1]
+
+    #     递归方法
+    #     res = []
+    #     self.helper(root, res)
+    #     return res
+
+    # def helper(self, root, res):
+    #     if not root:
+    #         return
+    #     self.helper(root.left, res)
+    #     self.helper(root.right, res)
+    #     res.append(root.val)
+```
+
+
+
+### 二叉树的层次遍历
+
+[二叉树的层次遍历-题目描述](https://leetcode-cn.com/problems/binary-tree-level-order-traversal/description/)
+
+```python
+class Solution:
+    def levelOrder(self, root: TreeNode) -> List[List[int]]:
+        if root is None:
+            return []
+
+        res = []
+        stack = [root]
+        while True:
+            layer = []
+            new_stack = []
+            for node in stack:
+                if node.left is not None:
+                    new_stack.append(node.left)
+                if node.right is not None:
+                    new_stack.append(node.right)
+                layer.append(node.val)
+            if layer:
+                res.append(layer)
+            else:
+                break
+            stack = new_stack[::1]
+        return res
+```
+
+
+
+### 二叉树的最近公共祖先
+
+[二叉树的最近公共祖先-题目描述](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/description/)
+
+```python
+class Solution:
+    def lowestCommonAncestor(
+            self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -> 'TreeNode':
+
+        # 先遍历所有节点，把每个节点的父节点存进哈希表
+        parents = {root: None}
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            if node.left:
+                parents[node.left] = node
+                stack.append(node.left)
+            if node.right:
+                parents[node.right] = node
+                stack.append(node.right)
+
+        # 获取p节点的所有祖宗节点
+        ancestors = set()
+        while p:
+            ancestors.add(p)
+            p = parents[p]
+        # 寻找p节点和q节点的第一个公共祖先
+        while q not in ancestors:
+            q = parents[q]
+        return q
+```
+
+
+
+### 二叉搜索树的最近公共祖先
+
+[二叉搜索树的最近公共祖先-题目描述](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-search-tree/description/)
+
+```python
+class Solution:
+    def lowestCommonAncestor(
+            self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -> 'TreeNode'
+        # 利用二叉搜索树的性质，采用递归方法
+        if not root or not p or not q:
+            return None
+        if max(p.val, q.val) < root.val:
+            return self.lowestCommonAncestor(root.left, p, q)
+        elif min(p.val, q.val) > root.val:
+            return self.lowestCommonAncestor(root.right, p, q)
+        else:
+            return root
+```
+
+
+
+### 翻转二叉树
+
+[翻转二叉树-题目描述](https://leetcode-cn.com/problems/invert-binary-tree/description/)
+
+```python
+class Solution:
+    def invertTree(self, root: TreeNode) -> TreeNode:
+        if root is None:
+            return root
+
+        if root.left is not None or root.right is not None:
+            root.left, root.right = \
+                self.invertTree(root.right), self.invertTree(root.left)
+        return root
+```
+
+
+
+### 二叉树中的最大路径和
+
+[二叉树中的最大路径和-题目描述](https://leetcode-cn.com/problems/binary-tree-maximum-path-sum/description/)
+
+```python
+class Solution:
+    def maxPathSum(self, root: TreeNode) -> int:
+        max_sum = float('-inf')
+
+        def helper(root):
+            nonlocal max_sum
+            if root is None:
+                return 0
+
+            left = max(helper(root.left), 0)
+            right = max(helper(root.right), 0)
+            max_sum = max(max_sum, root.val+left+right)
+            return root.val + max(left, right)
+        helper(root)
+        return max_sum
+```
+
+
+
+### 二叉搜索树中第K小的元素
+
+[二叉搜索树中第K小的元素-题目描述](https://leetcode-cn.com/problems/kth-smallest-element-in-a-bst/description/)
+
+```python
+class Solution:
+    # 二分查找 最好情况下O(N) 最差情况O(N^2)
+    def kthSmallest(self, root: TreeNode, k: int) -> int:
+
+        left_num = self.count_nodes(root.left)
+        if k == left_num + 1:
+            return root.val
+        elif k <= left_num:
+            return self.kthSmallest(root.left, k)
+        elif k > left_num+1:
+            return self.kthSmallest(root.right, k-left_num-1)
+
+    def count_nodes(self, root):
+        if not root:
+            return 0
+        return 1 + self.count_nodes(root.left) + self.count_nodes(root.right)
+
+    # 利用中序遍历（二叉树的中序遍历是按照从小到打排序的) O(N)
+    def kthSmallest2(self, root: TreeNode, k: int) -> int:
+        count = []
+        self.helper(root, count)
+        return count[k-1]
+
+    def helper(self, node, count):
+        if not node:
+            return
+        self.helper(node.left, count)
+        count.append(node.val)
+        self.helper(node.right, count)
+```
+
+
+
+### 左叶子之和
+
+[左叶子之和-题目描述](https://leetcode-cn.com/problems/sum-of-left-leaves/description/)
+
+```python
+class Solution:
+    def sumOfLeftLeaves(self, root: TreeNode) -> int:
+        def helper(node, in_left):
+            if node is None:
+                return 0
+            elif node.left is None and node.right is None and in_left:
+                return node.val
+            else:
+                return helper(node.left, True) + helper(node.right, False)
+        return helper(root, False)
+```
+
+
+
+
+
+
+
+
+
+
+

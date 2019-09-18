@@ -1,0 +1,527 @@
+---
+layout:     post
+title:      "Leetcode题解-字符串与数列"
+subtitle:   ""
+date:       2017-03-19
+author:     "MaggicQ"
+header-img: "img/home-bg-geek.jpg"
+tags:
+    - Leetcode题解
+---
+
+**本文目录**
+* TOC
+{:toc}
+
+
+# 数列
+
+
+
+### 两数之和
+
+[两数之和-题目描述](https://leetcode-cn.com/problems/two-sum/description/)
+
+```python
+class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+        # 利用hash表，O(n)时间复杂度，O(n)空间复杂度
+        d = {}
+        for i, n in enumerate(nums):
+            m = target - n
+            if m in d:
+                return [d[m], i]
+            else:
+                d[n] = i
+```
+
+
+
+### 三数之和
+
+[三数之和-题目描述](https://leetcode-cn.com/problems/3sum/description/)
+
+思路：先排序，然后固定一个数再使用双指针。
+
+```python
+class Solution:
+    def threeSum(self, nums: List[int]) -> List[List[int]]:
+        res = []
+        nums.sort()
+        for i in range(len(nums)-2):
+            if i > 0 and nums[i] == nums[i-1]:
+                continue
+            l, r = i+1, len(nums)-1
+            while l < r:
+                s = nums[i] + nums[l] + nums[r]
+                if s < 0:
+                    l += 1
+                elif s > 0:
+                    r -= 1
+                else:
+                    res.append((nums[i], nums[l], nums[r]))
+                    while l < r and nums[l] == nums[l+1]:  # 跳过相等的元素
+                        l += 1
+                    while l < r and nums[r] == nums[r-1]:
+                        r -= 1
+                    l += 1
+                    r -= 1
+        return res
+```
+
+
+
+### 四数之和
+
+[四数之和-题目描述](https://leetcode-cn.com/problems/4sum/description/)
+
+```python
+class Solution:
+    def fourSum(self, nums: List[int], target: int) -> List[List[int]]:
+        def findNsum(l, r, target, N, result, results):
+            # early termination
+            if r-l+1 < N or N < 2 or target < nums[l]*N or target > nums[r]*N:
+                return
+            if N == 2:  # two pointers solve sorted 2-sum problem
+                while l < r:
+                    s = nums[l] + nums[r]
+                    if s == target:
+                        results.append(result + [nums[l], nums[r]])
+                        l += 1
+                        while l < r and nums[l] == nums[l-1]:
+                            l += 1
+                    elif s < target:
+                        l += 1
+                    else:
+                        r -= 1
+            else:  # recursively reduce N
+                for i in range(l, r+1):
+                    if i == l or (i > l and nums[i-1] != nums[i]):
+                        findNsum(i+1, r, target-nums[i],
+                                 N-1, result+[nums[i]], results)
+
+        nums.sort()
+        results = []
+        findNsum(0, len(nums)-1, target, 4, [], results)
+        return results
+```
+
+
+
+### 除自身以外数组的乘积
+
+[除自身以外数组的乘积-题目描述](https://leetcode-cn.com/problems/product-of-array-except-self/description/)
+
+```python
+class Solution:
+    def productExceptSelf(self, nums: List[int]) -> List[int]:
+
+        qian_zhui = []  # 前缀乘积，qian_zhui[i]表示nums[:i]的累积
+        s = 1
+        for i in range(len(nums)):
+            qian_zhui.append(s)
+            s *= nums[i]
+
+        hou_zhui = []  # hou_zhui[i]表示nums[i+1:]的累积
+        s = 1
+        for x in reversed(nums):
+            hou_zhui.append(s)
+            s *= x
+        hou_zhui.reverse()
+        return [x*y for x, y in zip(qian_zhui, hou_zhui)]
+```
+
+
+
+### 删除排序数组中的重复项
+
+[删除排序数组中的重复项-题目描述](https://leetcode-cn.com/problems/remove-duplicates-from-sorted-array/description/)
+
+```python
+class Solution:
+    def removeDuplicates(self, nums: List[int]) -> int:
+        if not nums:
+            return 0
+
+        i = 0
+        for j in range(1, len(nums)):
+            if nums[j] != nums[i]:
+                i += 1
+                nums[i] = nums[j]
+        return i+1
+```
+
+[删除排序数组中的重复项 II](https://leetcode-cn.com/problems/remove-duplicates-from-sorted-array-ii/description/)
+
+给定一个排序数组，你需要在原地删除重复出现的元素，使得每个元素最多出现两次，返回移除后数组的新长度。
+
+```python
+class Solution:
+    def removeDuplicates(self, nums: List[int]) -> int:
+        i = 0
+        for n in nums:
+            if i < 2 or n > nums[i-2]:
+                nums[i] = n
+                i += 1
+        return i
+```
+
+
+
+### 盛最多水的容器
+
+[盛最多水的容器-题目描述](https://leetcode-cn.com/problems/container-with-most-water/description/)
+
+使用贪心的思路，每次将短板移动一个单位。
+
+```python
+class Solution:
+    def maxArea(self, height: List[int]) -> int:
+        i, j, res = 0, len(height)-1, 0
+        while i < j:
+            if height[i] >= height[j]:
+                res = max(res, height[j]*(j-i))
+                j -= 1
+            elif height[i] < height[j]:
+                res = max(res, height[i]*(j-i))
+                i += 1
+        return res
+```
+
+
+
+### 螺旋矩阵
+
+[螺旋矩阵-题目描述](https://leetcode-cn.com/problems/spiral-matrix/description/)
+
+```python
+class Solution:
+    def spiralOrder(self, matrix: List[List[int]]) -> List[int]:
+        res = []
+        while matrix:
+            res += matrix.pop(0)
+            matrix = list(map(list, zip(*matrix)))[::-1]
+        return res
+```
+
+
+
+### 合并两个有序数组
+
+[合并两个有序数组-题目描述](https://leetcode-cn.com/problems/merge-sorted-array/description/)
+
+```python
+class Solution:
+    def merge(self, nums1: List[int], m: int, nums2: List[int], n: int) -> None:
+        """
+        Do not return anything, modify nums1 in-place instead.
+        """
+        p1 = m - 1
+        p2 = n - 1
+        # set pointer for nums1
+        p = m + n - 1
+
+        # while there are still elements to compare
+        while p1 >= 0 and p2 >= 0:
+            if nums1[p1] < nums2[p2]:
+                nums1[p] = nums2[p2]
+                p2 -= 1
+            else:
+                nums1[p] = nums1[p1]
+                p1 -= 1
+            p -= 1
+
+        # add missing elements from nums2
+        nums1[:p2 + 1] = nums2[:p2 + 1]
+```
+
+
+
+### 接雨水
+
+[接雨水-题目描述](https://leetcode-cn.com/problems/trapping-rain-water/description/)
+
+```python
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        if not height:
+            return 0
+        left_max = [0]*len(height)
+        right_max = [0]*len(height)
+
+        left_max[0] = height[0]
+        for i in range(1, len(height)):
+            left_max[i] = max(height[i], left_max[i-1])
+
+        right_max[-1] = height[-1]
+        for i in range(len(height)-2, -1, -1):
+            right_max[i] = max(height[i], right_max[i+1])
+
+        res = 0
+        for l, r, h in zip(left_max, right_max, height):
+            res += (min(l, r) - h)
+        return res
+```
+
+
+
+### 乘积最大子序列
+
+[乘积最大子序列-题目描述](https://leetcode-cn.com/problems/maximum-product-subarray/description/)
+
+```python
+class Solution:
+    def maxProduct(self, nums: List[int]) -> int:
+        # 如果序列中没有0存在，那么乘积最大子序列必定是从开头开始的  或者终点在数组末尾
+        nums_reversed = nums[::-1]
+        for i in range(1, len(nums)):
+            nums[i] *= nums[i-1] or 1
+            nums_reversed[i] *= nums_reversed[i-1] or 1
+        return max(nums+nums_reversed)
+```
+
+### 求众数
+
+[求众数-题目描述](https://leetcode-cn.com/problems/majority-element/description/)
+
+```python
+class Solution:
+    def majorityElement(self, nums: List[int]) -> int:
+        nums.sort()
+        mid = len(nums)//2
+        return nums[mid]
+```
+
+### 旋转数组
+
+[旋转数组-题目描述](https://leetcode-cn.com/problems/rotate-array/)
+
+```python
+class Solution:
+    def rotate(self, nums: List[int], k: int) -> None:
+        """
+        Do not return anything, modify nums in-place instead.
+        """
+        # 进行k次旋转
+        # n = len(nums)
+        # k %= n
+        # for _ in range(k):
+        #     nums.insert(0, nums.pop())
+
+        n = len(nums)
+        k %= n
+        self.reverse(nums, 0, n-1)
+        self.reverse(nums, 0, k-1)
+        self.reverse(nums, k, n-1)
+
+    def reverse(self, nums, start, end):
+        while start < end:
+            nums[start], nums[end] = nums[end], nums[start]
+            start += 1
+            end -= 1
+```
+
+
+
+### 递增的三元子序列
+
+[递增的三元子序列](https://leetcode-cn.com/problems/increasing-triplet-subsequence/description/)
+
+```python
+class Solution:
+    def increasingTriplet(self, nums: List[int]) -> bool:
+        first = second = float('inf')
+        for n in nums:
+            if n <= first:
+                first = n
+            elif n <= second:
+                second = n
+            else:
+                return True
+        return False
+```
+
+
+
+# 字符串
+
+
+
+### 无重复字符的最长子串
+
+[无重复字符的最长子串-题目描述](https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/description/)
+
+```python
+class Solution:
+    def lengthOfLongestSubstring(self, s: str) -> int:
+        used = {}  # 保存字符到其索引的映射
+        max_length = start = 0
+        for i, c in enumerate(s):
+            if c in used and start <= used[c]:
+                start = used[c] + 1
+            else:
+                max_length = max(max_length, i - start + 1)
+
+            used[c] = i
+        return max_length
+```
+
+### 字符串中的第一个唯一字符
+
+[字符串中的第一个唯一字符-题目描述](https://leetcode-cn.com/problems/first-unique-character-in-a-string/description/)
+
+```python
+import collections
+class Solution:
+    def firstUniqChar(self, s: str) -> int:
+
+        count = collections.Counter(s)
+        # find the index
+        for i, ch in enumerate(s):
+            if count[ch] == 1:
+                return i
+        return -1
+```
+
+
+
+### 最长公共前缀
+
+[最长公共前缀-题目描述](https://leetcode-cn.com/problems/longest-common-prefix/description/)
+
+```python
+class Solution:
+    def longestCommonPrefix(self, strs: List[str]) -> str:
+        res = ""
+        for chars in zip(*strs):
+            if len(set(chars)) == 1:
+                res += chars[0]
+            else:
+                break
+        return res
+```
+
+
+
+### 字符串的排列
+
+[字符串的排列-题目描述](https://leetcode-cn.com/problems/permutation-in-string/description/)
+
+给定两个字符串 **s1** 和 **s2**，写一个函数来判断 **s2** 是否包含 **s1** 的排列：
+
+```python
+from collections import Counter
+class Solution:
+    def checkInclusion(self, s1: str, s2: str) -> bool:
+        c1 = Counter(s1)
+        for i in range(len(s2)-len(s1)+1):
+            c2 = Counter(s2[i:i+len(s1)])
+            if c1 == c2:
+                return True
+        return False
+```
+
+### 字符串相加
+
+[字符串相加-题目描述](https://leetcode-cn.com/problems/add-strings/description/)
+
+```python
+class Solution:
+    def addStrings(self, num1: str, num2: str) -> str:
+        res = ""
+        i, j, carry = len(num1) - 1, len(num2) - 1, 0
+        while i >= 0 or j >= 0:
+            n1 = int(num1[i]) if i >= 0 else 0
+            n2 = int(num2[j]) if j >= 0 else 0
+            tmp = n1 + n2 + carry
+            carry = tmp // 10
+            res = str(tmp % 10) + res
+            i, j = i - 1, j - 1
+        return "1" + res if carry else res
+```
+
+### 字符串相乘
+
+[字符串相乘-题目描述](https://leetcode-cn.com/problems/multiply-strings/description/)
+
+```python
+class Solution:
+    def multiply(self, num1: str, num2: str) -> str:
+        res = [0] * (len(num1) + len(num2))
+        for i, e1 in enumerate(reversed(num1)):
+            for j, e2 in enumerate(reversed(num2)):
+                res[i+j] += int(e1) * int(e2)
+                res[i+j+1] += res[i+j]//10
+                res[i+j] %= 10
+
+        while len(res) > 1 and res[-1] == 0:
+            res.pop()
+        return ''.join(map(str, res[::-1]))
+```
+
+
+
+
+
+### 简化路径
+
+[简化路径-题目描述](https://leetcode-cn.com/problems/simplify-path/description/)
+
+```python
+class Solution:
+    def simplifyPath(self, path: str) -> str:
+        stack = []
+        path = path.split("/")
+        for item in path:
+            if item == "..":
+                if stack:
+                    stack.pop()
+            elif item and item != ".":
+                stack.append(item)
+        return "/" + "/".join(stack)
+```
+
+
+
+### 复原IP地址
+
+[复原IP地址-题目描述](https://leetcode-cn.com/problems/restore-ip-addresses/description/)
+
+```python
+class Solution:
+    def restoreIpAddresses(self, s: str) -> List[str]:
+        res = []
+        self.helper(s, 0, "", res)
+        return res
+
+    def helper(self, s, index, path, res):
+        if index == 4:
+            if not s:
+                res.append(path[:-1])
+            return
+        for i in range(1, 4):
+            if i <= len(s):
+                if int(s[:i]) < 256:
+                    self.helper(s[i:], index+1, path+s[:i]+'.', res)
+                if s[0] == '0':
+                    break
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
