@@ -364,3 +364,38 @@ class Solution:
 
 ```
 
+### 最长上升子序列
+
+[最长上升子序列-题目描述](https://leetcode-cn.com/problems/longest-increasing-subsequence/description/)
+
+```python
+class Solution:
+    def lengthOfLIS(self, nums: List[int]) -> int:
+
+        # 动态规划 O(n^2)
+        # if not nums:
+        #     return 0
+        # dp = [1] * len(nums)
+
+        # for i in range(len(nums)):
+        #     for j in range(i):
+        #         if nums[i] > nums[j]:
+        #             dp[i] = max(dp[i], dp[j] + 1)
+        # return max(dp)
+
+        # 利用二分查找 O(nlogn)
+        # tails[k]表示长度为k的递增子序列的最小的尾数
+        tails, res = [0]*len(nums), 0
+        for n in nums:
+            i, j = 0, res
+            while i < j:
+                mid = (i+j)//2
+                if tails[mid] < n:
+                    i = mid + 1
+                else:
+                    j = mid
+            tails[i] = n
+            if j == res:
+                res += 1
+        return res
+```

@@ -341,6 +341,85 @@ class Solution:
         return False
 ```
 
+### 数组中的第K个最大元素
+
+[数组中的第K个最大元素-题目描述](https://leetcode-cn.com/problems/kth-largest-element-in-an-array/description/)
+
+```python
+import heapq
+
+
+class Solution:
+    def findKthLargest(self, nums: List[int], k: int) -> int:
+
+        # 1.直接排序 O(NlogN)
+        # return sorted(nums, reverse=True)[k-1]
+
+        # 2.1利用堆  O(nlogk)
+        # 创建一个大顶堆，遍历所有的元素，在保持堆的大小为k
+        # 的情况下尝试将遍历的元素加入堆中
+        # 最后堆顶的元素就是正确答案。
+        # return heapq.nlargest(k, nums)[-1]
+
+        # 2.2不利用nlargest这个函数的话
+        # max_heap = nums[:k]
+        # heapq.heapify(max_heap)  # 这个操作O(k)
+        # for num in nums[k:]:  # 这个操作是 O((n-k)*logk)
+        #     if num > max_heap[0]:  # 大于最大堆中的最小元素
+        #         heapq.heappop(max_heap)
+        #         heapq.heappush(max_heap, num)
+        # return max_heap[0]
+
+        # 2.3还可以对全体元素建堆
+        # nums = [-num for num in nums]
+        # heapq.heapify(nums)  # O(n)
+        # res = None
+        # for _ in range(k):  # O(k*logn)
+        #     res = heapq.heappop(nums)
+        # return -res
+
+        # 3.1递归，利用快排的思想，平均情况下为O(n),
+        # 平均情况就是每次取的val刚好能把数列分为两半
+        # 最坏的情况下要达到 O(n^2)
+        # if k == 1:
+        #     return max(nums)
+
+        # partion操作
+        # val = nums[0]
+        # less, bigger = [], []
+        # for n in nums[1:]:
+        #     if n >= val:
+        #         bigger.append(n)
+        #     else:
+        #         less.append(n)
+
+        # m = len(bigger)
+        # if m == (k-1):
+        #     return val
+        # elif m > (k-1):
+        #     return self.findKthLargest(bigger, k)
+        # else:
+        #     return self.findKthLargest(less, k-m-1)
+
+        # 3.2 直接在nums在操作，不使用额外的空间
+        pos = self.partition(nums, 0, len(nums)-1)
+        if pos > len(nums) - k:
+            return self.findKthLargest(nums[:pos], k-(len(nums)-pos))
+        elif pos < len(nums) - k:
+            return self.findKthLargest(nums[pos+1:], k)
+        else:
+            return nums[pos]
+
+    def partition(self, nums, left, right):
+        pivot = left
+        for i in range(left, right+1):
+            if nums[i] < nums[left]:
+                pivot += 1
+                nums[i], nums[pivot] = nums[pivot], nums[i]
+        nums[left], nums[pivot] = nums[pivot], nums[left]
+        return pivot
+```
+
 
 
 # 字符串
